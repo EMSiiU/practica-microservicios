@@ -1,0 +1,172 @@
+<section class="orders-header">
+  <div>
+    <h1>Mis Pedidos</h1>
+    <p class="subtitle">Consulta el historial de órdenes, comprobantes de pago y rastreo de envío.</p>
+  </div>
+
+  @if (auth.isAuthenticated()) {
+    <button type="button" class="bento-pill" (click)="cargarPedidos()" [disabled]="loading()">
+      {{ loading() ? 'Actualizando...' : 'Actualizar historial' }}
+    </button>
+  }
+</section>
+
+@if (!auth.isAuthenticated()) {
+  <div class="bento-card-soft empty-orders">
+    <h2>Inicia sesión para ver tus pedidos</h2>
+    <p>Accede a tus órdenes pasadas, guías de envío y comprobantes simulados.</p>
+    <button type="button" class="btn-coral" (click)="auth.openModal('login')">Iniciar sesión</button>
+  </div>
+} @else if (loading() && pedidos().length === 0) {
+  <div class="bento-card-soft empty-orders">Cargando historial de pedidos...</div>
+} @else if (pedidos().length === 0) {
+  <div class="bento-card-soft empty-orders">
+    <h2>Aún no has realizado pedidos</h2>
+    <p>Agrega productos al carrito y completa tu primera orden en el simulador.</p>
+    <a routerLink="/" class="btn-coral">Ir al catálogo</a>
+  </div>
+} @else {
+  <section class="bento-card-soft orders-table-card">
+    <div class="orders-table">
+      <div class="order-row order-head">
+        <span>Orden</span>
+        <span>Artículos</span>
+        <span>Total MXN</span>
+        <span>Estado</span>
+        <span>Pago</span>
+        <span>Guía</span>
+        <span class="text-right">Acciones</span>
+      </div>
+
+      @for (pedido of pedidos(); track pedido.id) {
+        <div class="order-row">
+          <div>
+            <strong class="order-id">Pedido #{{ pedido.id }}</strong>
+            <span class="order-city">{{ pedido.direccion.ciudad }}, CP {{ pedido.direccion.codigo_postal }}</span>
+          </div>
+
+          <div class="order-items-count">{{ totalArticulos(pedido) }} uds.</div>
+
+          <div class="order-total">{{ pedido.total | mxn }}</div>
+
+          <div>
+            <span
+              class="badge-pill"
+              [class.badge-success]="pedido.estado === 'pagado' || pedido.estado === 'enviado'"
+              [class.badge-warning]="pedido.estado === 'pendiente'"
+              [class.badge-danger]="pedido.estado === 'cancelado'"
+            >
+              {{ pedido.estado }}
+            </span>
+          </div>
+
+          <div>
+            <span
+              class="badge-pill"
+              [class.badge-success]="pedido.estado_pago === 'aprobado'"
+              [class.badge-warning]="pedido.estado_pago === 'en_proceso' || pedido.estado_pago === 'sin_pago'"
+              [class.badge-danger]="pedido.estado_pago === 'rechazado'"
+            >
+              {{ pedido.estado_pago }}
+            </span>
+          </div>
+
+          <div>
+            @if (pedido.guia) {
+              <span class="guia-chip">{{ pedido.guia }}</span>
+            } @else {
+              <span class="guia-empty">Sin guía</span>
+            }
+          </div>
+
+          <div class="order-actions">
+            <button type="button" class="bento-pill btn-xs" (click)="verComprobante(pedido)">
+              Comprobante
+            </button>
+            @if (pedido.guia) {
+              <button type="button" class="btn-coral btn-xs" (click)="verRastreo(pedido.guia)">
+                Rastrear
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<!-- Modal Comprobante de Pago -->
+@if (comprobanteModal(); as pago) {
+  <div class="modal-backdrop" (click)="comprobanteModal.set(null)">
+    <div class="modal-box bento-card" (click)="$event.stopPropagation()">
+      <div class="modal-top">
+        <span class="badge-pill badge-yellow">Comprobante de Pago</span>
+        <button type="button" class="close-btn" (click)="comprobanteModal.set(null)">×</button>
+      </div>
+
+      <h3>Pago #{{ pago.id }} · Pedido #{{ pago.pedido_id }}</h3>
+
+      <div class="receipt-rows">
+        <div>
+          <span>Monto cobrado</span>
+          <strong>{{ pago.monto | mxn }}</strong>
+        </div>
+        <div>
+          <span>Método</span>
+          <strong>{{ pago.metodo_pago }}</strong>
+        </div>
+        <div>
+          <span>Estado</span>
+          <span
+            class="badge-pill"
+            [class.badge-success]="pago.estado === 'aprobado'"
+            [class.badge-danger]="pago.estado === 'rechazado'"
+          >
+            {{ pago.estado }}
+          </span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-coral modal-close-cta" (click)="comprobanteModal.set(null)">
+        Cerrar
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Modal Rastreo de Envío -->
+@if (rastreoModal(); as env) {
+  <div class="modal-backdrop" (click)="rastreoModal.set(null)">
+    <div class="modal-box bento-card bg-pastel-sky" (click)="$event.stopPropagation()">
+      <div class="modal-top">
+        <span class="badge-pill badge-dark">Rastreo de Envío</span>
+        <button type="button" class="close-btn" (click)="rastreoModal.set(null)">×</button>
+      </div>
+
+      <h3>Guía {{ env.guia }}</h3>
+
+      <div class="tracking-steps">
+        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 1">
+          <div class="dot">1</div>
+          <span>Preparando</span>
+        </div>
+        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 2">
+          <div class="dot">2</div>
+          <span>En tránsito</span>
+        </div>
+        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 3">
+          <div class="dot">3</div>
+          <span>Entregado</span>
+        </div>
+      </div>
+
+      <p class="tracking-note">
+        Estado actual reportado por Envíos: <strong>{{ env.estado }}</strong>
+      </p>
+
+      <button type="button" class="btn-coral modal-close-cta" (click)="rastreoModal.set(null)">
+        Cerrar rastreo
+      </button>
+    </div>
+  </div>
+}

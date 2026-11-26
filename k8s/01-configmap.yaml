@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tienda-config
+  namespace: tienda-microservicios
+data:
+  CORS_ORIGIN: "http://localhost:4200"
+  CORS_ORIGINS: "http://localhost:4200"
+  API_USUARIOS_URL: "http://api-usuarios:8001"
+  API_PRODUCTOS_URL: "http://api-productos:8002"
+  API_ENVIOS_URL: "http://api-envios:8003"
+  API_INVENTARIO_URL: "http://api-inventario:8004"
+  API_CARRITO_URL: "http://api-carrito:8005"
+  API_PEDIDOS_URL: "http://api-pedidos:8006"
+  API_PAGOS_URL: "http://api-pagos:8007"
+  API_RESENAS_URL: "http://api-resenas:8008"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB_PEDIDOS: "db_pedidos"
+  POSTGRES_DB_PAGOS: "db_pagos"
+  MONGO_HOST: "mongo"
+  MONGO_PORT: "27017"
+  MONGO_DB_RESENAS: "db_resenas"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: tienda-microservicios
+data:
+  init-dbs.sql: |
+    SELECT 'CREATE DATABASE db_pagos'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'db_pagos')\gexec

@@ -1,0 +1,128 @@
+<div class="modal-backdrop" (click)="auth.closeModal()">
+  <div class="modal-panel bento-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="badge-pill badge-yellow">Acceso de Cliente</span>
+        <h2>{{ auth.modalTab() === 'login' ? 'Inicia sesión en TuTienda' : 'Crea tu cuenta' }}</h2>
+      </div>
+      <button type="button" class="close-btn" (click)="auth.closeModal()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="tab-pills">
+      <button
+        type="button"
+        class="bento-pill"
+        [class.active]="auth.modalTab() === 'login'"
+        (click)="setTab('login')"
+      >
+        Iniciar sesión
+      </button>
+      <button
+        type="button"
+        class="bento-pill"
+        [class.active]="auth.modalTab() === 'registro'"
+        (click)="setTab('registro')"
+      >
+        Registrarse
+      </button>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="inline-alert">
+        @if (errorCode()) {
+          <span class="alert-code">{{ errorCode() }}</span>
+        }
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    @if (auth.modalTab() === 'login') {
+      <form class="auth-form" (ngSubmit)="submitLogin()">
+        <div>
+          <label class="bento-label" for="loginCorreo">Correo electrónico</label>
+          <input
+            id="loginCorreo"
+            class="bento-input"
+            type="email"
+            name="loginCorreo"
+            [(ngModel)]="loginCorreo"
+            placeholder="ana@example.test"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="bento-label" for="loginContrasena">Contraseña</label>
+          <input
+            id="loginContrasena"
+            class="bento-input"
+            type="password"
+            name="loginContrasena"
+            [(ngModel)]="loginContrasena"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
+        @if (useMocks) {
+          <div class="demo-box">
+            <div>
+              <strong>Cuenta demo disponible:</strong>
+              <span>ana&#64;example.test / DemoTienda-2026</span>
+            </div>
+            <button type="button" class="demo-fill-btn" (click)="usarCuentaDemo()">Autocompletar</button>
+          </div>
+        }
+
+        <button type="submit" class="btn-coral submit-btn" [disabled]="loading()">
+          {{ loading() ? 'Verificando...' : 'Entrar a mi cuenta' }}
+        </button>
+      </form>
+    } @else {
+      <form class="auth-form" (ngSubmit)="submitRegistro()">
+        <div>
+          <label class="bento-label" for="regNombre">Nombre completo</label>
+          <input
+            id="regNombre"
+            class="bento-input"
+            type="text"
+            name="regNombre"
+            [(ngModel)]="regNombre"
+            placeholder="Ana López"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="bento-label" for="regCorreo">Correo electrónico</label>
+          <input
+            id="regCorreo"
+            class="bento-input"
+            type="email"
+            name="regCorreo"
+            [(ngModel)]="regCorreo"
+            placeholder="tu@correo.com"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="bento-label" for="regContrasena">Contraseña</label>
+          <input
+            id="regContrasena"
+            class="bento-input"
+            type="password"
+            name="regContrasena"
+            [(ngModel)]="regContrasena"
+            placeholder="Mínimo 6 caracteres"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn-coral submit-btn" [disabled]="loading()">
+          {{ loading() ? 'Creando cuenta...' : 'Crear cuenta y entrar' }}
+        </button>
+      </form>
+    }
+  </div>
+</div>

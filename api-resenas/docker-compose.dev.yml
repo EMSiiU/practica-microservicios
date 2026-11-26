@@ -1,0 +1,40 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo-resenas-dev
+    volumes:
+      - mongo_resenas_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - red-tienda
+
+  api-resenas:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-resenas-dev
+    ports:
+      - "8008:8008"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/tienda_resenas
+      JWT_SECRET: ${JWT_SECRET:-secreto-demo-tienda-2026}
+      PORT: 8008
+      CORS_ORIGINS: http://localhost:4200
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - red-tienda
+
+networks:
+  red-tienda:
+    name: red-tienda
+    driver: bridge
+
+volumes:
+  mongo_resenas_data:

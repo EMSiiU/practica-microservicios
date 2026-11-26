@@ -1,0 +1,185 @@
+<section class="catalogo-header">
+  <div>
+    <h1>Explora el catálogo</h1>
+    <p class="subtitle">Productos listos para envío en México con disponibilidad y reseñas verificadas.</p>
+  </div>
+
+  <div class="category-pills" role="tablist" aria-label="Filtrar por categoría">
+    @for (cat of categories(); track cat) {
+      <button
+        type="button"
+        class="bento-pill"
+        [class.active]="selectedCategory() === cat"
+        (click)="selectCategory(cat)"
+      >
+        {{ cat }}
+      </button>
+    }
+  </div>
+</section>
+
+@if (loading()) {
+  <div class="bento-grid-top">
+    @for (skeleton of [1, 2, 3]; track skeleton) {
+      <div class="bento-card skeleton-card"></div>
+    }
+  </div>
+} @else if (filteredItems().length === 0) {
+  <div class="bento-card-soft empty-state">
+    <h3>No encontramos productos para tu búsqueda</h3>
+    <p>Prueba seleccionando otra categoría o limpiando el buscador superior.</p>
+    <button type="button" class="btn-coral" (click)="selectCategory('Todos')">Ver todos los productos</button>
+  </div>
+} @else {
+  <!-- Fila superior de 3 tarjetas pastel Bento -->
+  <section class="bento-grid-top">
+    @for (vm of featuredCards(); track vm.producto.id; let i = $index) {
+      <article class="bento-card product-bento" [class]="pastelClass(i)">
+        <div class="card-top-row">
+          <span class="badge-pill badge-dark">{{ vm.producto.categoria }}</span>
+          <span class="rating-pill">
+            ★ {{ vm.promedio !== null ? vm.promedio.toFixed(1) : 'Nuevo' }}
+          </span>
+        </div>
+
+        <a [routerLink]="['/producto', vm.producto.id]" class="card-title-link">
+          <div class="thumb-wrap">
+            <img [src]="vm.producto.imagen_url" [alt]="vm.producto.nombre" />
+          </div>
+          <h3>{{ vm.producto.nombre }}</h3>
+          <p class="card-desc">{{ vm.producto.descripcion }}</p>
+        </a>
+
+        <div class="stock-row">
+          <div class="stock-labels">
+            <span>Disponibilidad</span>
+            <strong>
+              {{ vm.disponible !== null ? vm.disponible + ' uds.' : 'Sin registro' }}
+            </strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="stockPercent(vm.disponible)"></div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="price-box">
+            <span class="price-label">Precio</span>
+            <strong class="price-value">{{ vm.producto.precio | mxn }}</strong>
+          </div>
+
+          <div class="card-actions">
+            <a [routerLink]="['/producto', vm.producto.id]" class="btn-outline btn-sm">Ver detalle</a>
+            <button
+              type="button"
+              class="btn-coral btn-sm"
+              [disabled]="addingId() === vm.producto.id || vm.disponible === 0"
+              (click)="agregarRapido(vm)"
+            >
+              {{ addingId() === vm.producto.id ? '...' : 'Agregar' }}
+            </button>
+          </div>
+        </div>
+      </article>
+    }
+  </section>
+
+  <!-- Sección inferior dividida: Listado blanco izquierda + Tarjeta oscura derecha -->
+  <section class="bento-split-bottom">
+    <div class="bento-card-soft catalog-list-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Más productos disponibles</h2>
+          <p class="panel-sub">Consulta detalles, existencias o agrégalos directo a tu compra.</p>
+        </div>
+        <span class="badge-pill badge-neutral">{{ listItems().length }} artículos</span>
+      </div>
+
+      <div class="list-table">
+        <div class="list-row list-row-head">
+          <span>Producto</span>
+          <span>Reseñas</span>
+          <span>Stock</span>
+          <span>Precio</span>
+          <span class="text-right">Acción</span>
+        </div>
+
+        @for (vm of listItems(); track vm.producto.id) {
+          <div class="list-row">
+            <div class="list-product-cell">
+              <img [src]="vm.producto.imagen_url" [alt]="vm.producto.nombre" class="mini-thumb" />
+              <div>
+                <a [routerLink]="['/producto', vm.producto.id]" class="list-title">{{ vm.producto.nombre }}</a>
+                <span class="list-cat">{{ vm.producto.categoria }}</span>
+              </div>
+            </div>
+
+            <div class="list-rating">
+              <span class="star-dot">★</span>
+              <span>{{ vm.promedio !== null ? vm.promedio.toFixed(1) : '—' }}</span>
+              <small>({{ vm.totalResenas }})</small>
+            </div>
+
+            <div>
+              <span
+                class="badge-pill"
+                [class.badge-success]="(vm.disponible ?? 0) > 3"
+                [class.badge-warning]="(vm.disponible ?? 0) > 0 && (vm.disponible ?? 0) <= 3"
+                [class.badge-danger]="(vm.disponible ?? 0) === 0"
+              >
+                {{ vm.disponible !== null ? vm.disponible + ' disp.' : 'N/D' }}
+              </span>
+            </div>
+
+            <div class="list-price">{{ vm.producto.precio | mxn }}</div>
+
+            <div class="list-actions">
+              <a [routerLink]="['/producto', vm.producto.id]" class="link-detail">Ver detalle</a>
+              <button
+                type="button"
+                class="btn-coral btn-xs"
+                [disabled]="addingId() === vm.producto.id || vm.disponible === 0"
+                (click)="agregarRapido(vm)"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (spotlightProduct(); as spot) {
+      <aside class="bento-card-dark spotlight-card">
+        <span class="spotlight-kicker">Recomendado para tu compra</span>
+
+        <div class="spotlight-badge-row">
+          <span class="badge-pill badge-yellow">{{ spot.producto.categoria }}</span>
+          <span class="spotlight-rating">
+            ★ {{ spot.promedio !== null ? spot.promedio.toFixed(1) : '5.0' }}
+          </span>
+        </div>
+
+        <h3>{{ spot.producto.nombre }}</h3>
+        <p class="spotlight-desc">{{ spot.producto.descripcion }}</p>
+
+        <div class="spotlight-meta">
+          <div>
+            <small>Precio MXN</small>
+            <strong>{{ spot.producto.precio | mxn }}</strong>
+          </div>
+          <div>
+            <small>Inventario</small>
+            <strong>{{ spot.disponible ?? 0 }} disponibles</strong>
+          </div>
+        </div>
+
+        <div class="spotlight-actions">
+          <a [routerLink]="['/producto', spot.producto.id]" class="btn-coral spotlight-cta">
+            Ver detalle
+          </a>
+        </div>
+      </aside>
+    }
+  </section>
+}
