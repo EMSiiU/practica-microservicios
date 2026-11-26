@@ -49,3 +49,25 @@ function registrarUsuario(string $nombre, string $correo, string $contrasena): ?
 
     return $perfil === false ? null : $perfil;
 }
+
+function buscarUsuarioPorCorreo(string $correo): ?array
+{
+    $consulta = abrirBaseDeDatos()->prepare(
+        'SELECT id, nombre, correo, rol, contrasena_hash FROM usuarios WHERE correo = :correo'
+    );
+    $consulta->execute(['correo' => $correo]);
+    $usuario = $consulta->fetch(PDO::FETCH_ASSOC);
+
+    return $usuario === false ? null : $usuario;
+}
+
+function buscarPerfilPorId(string $id): ?array
+{
+    $consulta = abrirBaseDeDatos()->prepare(
+        'SELECT id, nombre, correo, rol FROM usuarios WHERE id = :id'
+    );
+    $consulta->execute(['id' => $id]);
+    $perfil = $consulta->fetch(PDO::FETCH_ASSOC);
+
+    return $perfil === false ? null : $perfil;
+}

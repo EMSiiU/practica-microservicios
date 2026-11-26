@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/src/usuarios.php';
+require_once dirname(__DIR__) . '/src/autenticacion.php';
 
 function responderJson(int $estadoHttp, array $datos): void
 {
@@ -13,6 +15,21 @@ function responderJson(int $estadoHttp, array $datos): void
 
 $method = $_SERVER['REQUEST_METHOD'] ?? '';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+header('Vary: Origin');
+$origen = $_SERVER['HTTP_ORIGIN'] ?? '';
+$origenPermitido = getenv('CORS_ORIGIN');
+
+if ($origen !== '' && $origen === $origenPermitido) {
+    header('Access-Control-Allow-Origin: ' . $origenPermitido);
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Authorization, Content-Type');
+}
+
+if ($method === 'OPTIONS' && is_string($path) && str_starts_with($path, '/api/usuarios/')) {
+    http_response_code(204);
+    return;
+}
 
 if ($method === 'GET' && $path === '/health') {
     responderJson(200, ['servicio' => 'api-usuarios', 'estado' => 'ok']);
@@ -72,6 +89,29 @@ if ($method === 'POST' && $path === '/api/usuarios/registro') {
     }
 
     responderJson(201, $perfil);
+    return;
+}
+
+try {
+    if ($method === 'POST' && $path === '/api/usuarios/login') {
+        iniciarSesion();
+        return;
+    }
+
+    if (
+        $method === 'GET'
+        && is_string($path)
+        && preg_match('#\A/api/usuarios/([1-9][0-9]*)\z#', $path, $partes)
+    ) {
+        consultarPerfil($partes[1]);
+        return;
+    }
+} catch (RuntimeException $error) {
+    error_log($error->getMessage());
+    responderJson(500, [
+        'codigo' => 'ERROR_INTERNO',
+        'mensaje' => 'No se pudo completar la solicitud.',
+    ]);
     return;
 }
 
