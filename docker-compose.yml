@@ -61,6 +61,8 @@ services:
       - red-tienda
 
   api-productos:
+    volumes:
+      - productos_data:/app/data
     build:
       context: ./api-productos
       dockerfile: Dockerfile
@@ -229,6 +231,7 @@ services:
       - red-tienda
 
 volumes:
+  productos_data:
   usuarios_data:
   postgres_data:
   mongo_data:
