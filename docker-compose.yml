@@ -1,0 +1,236 @@
+services:
+  # ============================================================================
+  # BASES DE DATOS
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: tienda-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tienda_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tienda_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB_PEDIDOS:-db_pedidos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./k8s/01-configmap.yaml:/tmp/configmap.yaml:ro
+    command: >
+      sh -c " mkdir -p /docker-entrypoint-initdb.d && echo \"SELECT 'CREATE DATABASE ${POSTGRES_DB_PAGOS:-db_pagos}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${POSTGRES_DB_PAGOS:-db_pagos}')\gexec\" > /docker-entrypoint-initdb.d/init-dbs.sql && docker-entrypoint.sh postgres "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tienda_admin} -d ${POSTGRES_DB_PEDIDOS:-db_pedidos}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - red-tienda
+
+  mongo:
+    image: mongo:7
+    container_name: tienda-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - red-tienda
+
+  # ============================================================================
+  # MICROSERVICIOS (INTEGRANTE 1)
+  # ============================================================================
+  api-usuarios:
+    build:
+      context: ./api-usuarios
+      dockerfile: Dockerfile
+    image: api-usuarios:latest
+    container_name: api-usuarios
+    ports:
+      - "${PORT_USUARIOS:-8001}:8001"
+    environment:
+      PORT: 8001
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+    networks:
+      - red-tienda
+
+  api-productos:
+    build:
+      context: ./api-productos
+      dockerfile: Dockerfile
+    image: api-productos:latest
+    container_name: api-productos
+    ports:
+      - "${PORT_PRODUCTOS:-8002}:8002"
+    environment:
+      PORT: 8002
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+    networks:
+      - red-tienda
+
+  api-envios:
+    build:
+      context: ./api-envios
+      dockerfile: Dockerfile
+    image: api-envios:latest
+    container_name: api-envios
+    ports:
+      - "${PORT_ENVIOS:-8003}:8003"
+    environment:
+      PORT: 8003
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+    networks:
+      - red-tienda
+
+  # ============================================================================
+  # MICROSERVICIOS (INTEGRANTE 2)
+  # ============================================================================
+  api-inventario:
+    build:
+      context: ./api-inventario
+      dockerfile: Dockerfile
+    image: api-inventario:latest
+    container_name: api-inventario
+    ports:
+      - "${PORT_INVENTARIO:-8004}:8004"
+    environment:
+      PORT: 8004
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+    networks:
+      - red-tienda
+
+  api-carrito:
+    build:
+      context: ./api-carrito
+      dockerfile: Dockerfile
+    image: api-carrito:latest
+    container_name: api-carrito
+    ports:
+      - "${PORT_CARRITO:-8005}:8005"
+    environment:
+      PORT: 8005
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+    networks:
+      - red-tienda
+
+  # ============================================================================
+  # MICROSERVICIOS (INTEGRANTE 3)
+  # ============================================================================
+  api-pedidos:
+    build:
+      context: ./api-pedidos
+      dockerfile: Dockerfile
+    image: api-pedidos:latest
+    container_name: api-pedidos
+    ports:
+      - "${PORT_PEDIDOS:-8006}:8006"
+    environment:
+      PORT: 8006
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+      DATABASE_URL: ${DATABASE_URL_PEDIDOS:-postgresql://tienda_admin:tienda_pass_2026@postgres:5432/db_pedidos}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-tienda_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tienda_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB_PEDIDOS:-db_pedidos}
+      API_USUARIOS_URL: http://api-usuarios:8001
+      API_PRODUCTOS_URL: http://api-productos:8002
+      API_ENVIOS_URL: http://api-envios:8003
+      API_INVENTARIO_URL: http://api-inventario:8004
+      API_CARRITO_URL: http://api-carrito:8005
+      API_PAGOS_URL: http://api-pagos:8007
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - red-tienda
+
+  api-pagos:
+    build:
+      context: ./api-pagos
+      dockerfile: Dockerfile
+    image: api-pagos:latest
+    container_name: api-pagos
+    ports:
+      - "${PORT_PAGOS:-8007}:8007"
+    environment:
+      PORT: 8007
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      X_SERVICE_TOKEN: ${X_SERVICE_TOKEN:-token_interno_servicios_tienda_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+      DATABASE_URL: ${DATABASE_URL_PAGOS:-postgresql://tienda_admin:tienda_pass_2026@postgres:5432/db_pagos}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-tienda_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tienda_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB_PAGOS:-db_pagos}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - red-tienda
+
+  # ============================================================================
+  # MICROSERVICIO Y FRONTEND (INTEGRANTE 4)
+  # ============================================================================
+  api-resenas:
+    build:
+      context: ./api-resenas
+      dockerfile: Dockerfile
+    image: api-resenas:latest
+    container_name: api-resenas
+    ports:
+      - "${PORT_RESENAS:-8008}:8008"
+    environment:
+      PORT: 8008
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
+      CORS_ORIGINS: ${CORS_ORIGIN:-http://localhost:4200}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/db_resenas}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - red-tienda
+
+  frontend-tienda:
+    build:
+      context: ./frontend-tienda
+      dockerfile: Dockerfile
+    image: frontend-tienda:latest
+    container_name: frontend-tienda
+    ports:
+      - "${PORT_FRONTEND:-4200}:4200"
+    depends_on:
+      - api-usuarios
+      - api-productos
+      - api-envios
+      - api-inventario
+      - api-carrito
+      - api-pedidos
+      - api-pagos
+      - api-resenas
+    networks:
+      - red-tienda
+
+volumes:
+  postgres_data:
+  mongo_data:
+
+networks:
+  red-tienda:
+    name: red-tienda
+    driver: bridge

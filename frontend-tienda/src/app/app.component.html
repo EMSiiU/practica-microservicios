@@ -1,0 +1,194 @@
+<div class="viewport-frame">
+  <div class="bento-shell">
+    <!-- Barra lateral izquierda carbón -->
+    <aside class="bento-sidebar" aria-label="Navegación principal">
+      <a class="brand-mark" routerLink="/" title="TuTienda Inicio">
+        <span>T</span>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="nav-btn"
+          title="Inicio / Catálogo"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.8" />
+            <rect x="14" y="3" width="7" height="7" rx="1.8" />
+            <rect x="3" y="14" width="7" height="7" rx="1.8" />
+            <rect x="14" y="14" width="7" height="7" rx="1.8" />
+          </svg>
+        </a>
+
+        <a
+          routerLink="/producto/12"
+          routerLinkActive="active"
+          class="nav-btn"
+          title="Detalle de Producto"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+        </a>
+
+        <a
+          routerLink="/carrito"
+          routerLinkActive="active"
+          class="nav-btn nav-btn-cart"
+          title="Carrito y Checkout"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <path d="M16 10a4 4 0 0 1-8 0" />
+          </svg>
+          @if (carrito.cartCount() > 0) {
+            <span class="sidebar-badge">{{ carrito.cartCount() }}</span>
+          }
+        </a>
+
+        <a
+          routerLink="/pedidos"
+          routerLinkActive="active"
+          class="nav-btn"
+          title="Mis Pedidos"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="8" y1="13" x2="16" y2="13" />
+            <line x1="8" y1="17" x2="13" y2="17" />
+          </svg>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button
+          type="button"
+          class="nav-btn"
+          (click)="onSidebarAuthClick()"
+          [title]="auth.isAuthenticated() ? 'Cerrar sesión' : 'Iniciar sesión'"
+        >
+          @if (auth.isAuthenticated()) {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+          }
+        </button>
+      </div>
+    </aside>
+
+    <!-- Lienzo crema principal -->
+    <main class="bento-canvas">
+      <header class="topbar">
+        <div class="greeting-block">
+          @if (auth.user(); as currentUser) {
+            <p class="greeting-text">
+              Hola, <span class="brand-accent">{{ currentUser.nombre }}</span>
+            </p>
+          } @else {
+            <p class="greeting-text">
+              Bienvenido a <span class="brand-accent">TuTienda</span>
+            </p>
+          }
+          <span class="env-chip" [class.env-chip-mock]="useMocks">
+            {{ useMocks ? 'Modo Mock · Reseñas Live' : 'Microservicios Live' }}
+          </span>
+        </div>
+
+        <div class="topbar-actions">
+          <form class="search-pill" (ngSubmit)="submitSearch()">
+            <input
+              type="text"
+              placeholder="Buscar producto o categoría..."
+              [ngModel]="search.query()"
+              (ngModelChange)="onSearchInput($event)"
+              name="searchQuery"
+              aria-label="Buscar producto o categoría"
+            />
+            <button type="submit" class="search-btn" aria-label="Buscar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+          </form>
+
+          <a routerLink="/carrito" class="icon-pill-btn" title="Ir al carrito">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            @if (carrito.cartCount() > 0) {
+              <span class="cart-counter">{{ carrito.cartCount() }}</span>
+            }
+          </a>
+
+          @if (auth.user(); as currentUser) {
+            <div class="profile-chip">
+              <div class="avatar-circle">{{ userInitials() }}</div>
+              <div class="profile-meta">
+                <span class="profile-name">{{ currentUser.nombre }}</span>
+                <span class="profile-email">{{ currentUser.correo }}</span>
+              </div>
+              <button
+                type="button"
+                class="logout-mini"
+                (click)="auth.logout()"
+                title="Cerrar sesión"
+              >
+                Salir
+              </button>
+            </div>
+          } @else {
+            <button type="button" class="btn-coral login-trigger" (click)="auth.openModal('login')">
+              Iniciar Sesión
+            </button>
+          }
+        </div>
+      </header>
+
+      <!-- Stack de alertas / errores de contrato -->
+      @if (toast.toasts().length > 0) {
+        <section class="toast-stack" aria-live="polite">
+          @for (item of toast.toasts(); track item.id) {
+            <div class="toast-card" [class]="'toast-' + item.tone">
+              <div class="toast-body">
+                <div class="toast-head">
+                  <strong>{{ item.titulo }}</strong>
+                  @if (item.codigo) {
+                    <span class="toast-code">{{ item.codigo }}</span>
+                  }
+                </div>
+                <p>{{ item.mensaje }}</p>
+              </div>
+              <button type="button" class="toast-close" (click)="toast.dismiss(item.id)" aria-label="Cerrar alerta">
+                ×
+              </button>
+            </div>
+          }
+        </section>
+      }
+
+      <section class="view-container">
+        <router-outlet />
+      </section>
+    </main>
+  </div>
+</div>
+
+@if (auth.modalOpen()) {
+  <app-auth-modal />
+}
