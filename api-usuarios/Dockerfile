@@ -2,6 +2,7 @@ FROM php:8.4-cli
 
 WORKDIR /app
 COPY public/ ./public/
+COPY src/ ./src/
 
 EXPOSE 8001
 
