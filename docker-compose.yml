@@ -79,6 +79,8 @@ services:
       - red-tienda
 
   api-envios:
+    volumes:
+      - envios_data:/app/data
     build:
       context: ./api-envios
       dockerfile: Dockerfile
@@ -231,6 +233,7 @@ services:
       - red-tienda
 
 volumes:
+  envios_data:
   productos_data:
   usuarios_data:
   postgres_data:
