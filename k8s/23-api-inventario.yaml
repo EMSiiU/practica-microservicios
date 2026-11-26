@@ -7,6 +7,8 @@ metadata:
     app: api-inventario
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: api-inventario
@@ -15,6 +17,8 @@ spec:
       labels:
         app: api-inventario
     spec:
+      securityContext:
+        fsGroup: 10001
       containers:
         - name: api-inventario
           image: api-inventario:latest
@@ -30,16 +34,37 @@ spec:
           env:
             - name: PORT
               value: "8004"
+          volumeMounts:
+            - name: inventario-data
+              mountPath: /app/data
           readinessProbe:
-            tcpSocket:
-              port: 8004
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
-            tcpSocket:
-              port: 8004
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: 15
             periodSeconds: 10
+      volumes:
+        - name: inventario-data
+          persistentVolumeClaim:
+            claimName: inventario-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: inventario-data
+  namespace: tienda-microservicios
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
