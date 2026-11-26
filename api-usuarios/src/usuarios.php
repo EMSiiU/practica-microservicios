@@ -27,13 +27,13 @@ function abrirBaseDeDatos(): PDO
     return $db;
 }
 
-function registrarUsuario(string $nombre, string $correo, string $contrasena): ?array
+function registrarUsuario(string $nombre, string $correo, string $contrasena, string $rol = 'cliente'): ?array
 {
     $db = abrirBaseDeDatos();
 
     $consulta = $db->prepare(<<<'SQL'
-        INSERT INTO usuarios (nombre, correo, contrasena_hash)
-        VALUES (:nombre, :correo, :hash)
+        INSERT INTO usuarios (nombre, correo, contrasena_hash, rol)
+        VALUES (:nombre, :correo, :hash, :rol)
         ON CONFLICT (correo) DO NOTHING
         RETURNING id, nombre, correo, rol
         SQL
@@ -43,6 +43,7 @@ function registrarUsuario(string $nombre, string $correo, string $contrasena): ?
         'nombre' => $nombre,
         'correo' => $correo,
         'hash' => password_hash($contrasena, PASSWORD_BCRYPT),
+        'rol' => $rol,
     ]);
 
     $perfil = $consulta->fetch(PDO::FETCH_ASSOC);

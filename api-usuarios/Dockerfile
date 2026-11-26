@@ -8,6 +8,7 @@ FROM php:8.4-cli
 
 WORKDIR /app
 COPY --from=dependencias /app/vendor/ ./vendor/
+COPY bin/ ./bin/
 COPY public/ ./public/
 COPY src/ ./src/
 
