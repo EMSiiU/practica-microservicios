@@ -1,0 +1,17 @@
+{
+  "name": "api-carrito",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservicio de gestión temporal del carrito de compras",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

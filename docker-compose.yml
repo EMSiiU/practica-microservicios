@@ -100,6 +100,8 @@ services:
   # MICROSERVICIOS (INTEGRANTE 2)
   # ============================================================================
   api-inventario:
+    volumes:
+      - inventario_data:/app/data
     build:
       context: ./api-inventario
       dockerfile: Dockerfile
@@ -116,6 +118,8 @@ services:
       - red-tienda
 
   api-carrito:
+    volumes:
+      - carrito_data:/app/data
     build:
       context: ./api-carrito
       dockerfile: Dockerfile
@@ -236,6 +240,8 @@ volumes:
   envios_data:
   productos_data:
   usuarios_data:
+  inventario_data:
+  carrito_data:
   postgres_data:
   mongo_data:
 
