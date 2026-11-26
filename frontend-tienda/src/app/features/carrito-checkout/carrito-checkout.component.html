@@ -1,0 +1,305 @@
+<section class="checkout-header">
+  <div>
+    <h1>Carrito y Checkout</h1>
+    <p class="subtitle">Cotiza tu envío en México, genera tu orden y simula el pago de compra.</p>
+  </div>
+  @if (carritoService.cartLocked()) {
+    <span class="badge-pill badge-warning">Carrito bloqueado mientras el pago está en curso</span>
+  }
+</section>
+
+@if (!auth.isAuthenticated()) {
+  <div class="bento-card-soft guest-box">
+    <h2>Inicia sesión para gestionar tu carrito</h2>
+    <p>Tu carrito y tus pedidos están vinculados a tu cuenta de cliente.</p>
+    <button type="button" class="btn-coral" (click)="auth.openModal('login')">Iniciar sesión</button>
+  </div>
+} @else {
+  <section class="checkout-grid">
+    <!-- Panel izquierdo blanco: artículos del carrito + dirección en México -->
+    <div class="left-stack">
+      <article class="bento-card-soft panel-box">
+        <div class="panel-title-row">
+          <div>
+            <h2>Artículos en tu carrito</h2>
+            <p>{{ totalUnidades() }} {{ totalUnidades() === 1 ? 'unidad' : 'unidades' }} seleccionadas</p>
+          </div>
+
+          <button
+            type="button"
+            class="btn-outline btn-sm"
+            [disabled]="lineasCarrito().length === 0 || carritoService.cartLocked() || !!pedidoActual()"
+            (click)="vaciar()"
+          >
+            Vaciar carrito
+          </button>
+        </div>
+
+        @if (lineasCarrito().length === 0) {
+          <div class="empty-cart">
+            <p>Tu carrito está vacío por el momento.</p>
+            <a routerLink="/" class="btn-coral">Explorar catálogo</a>
+          </div>
+        } @else {
+          <div class="cart-items-list">
+            @for (item of lineasCarrito(); track item.producto_id) {
+              <div class="cart-row">
+                <div class="cart-prod">
+                  @if (item.imagen_url) {
+                    <img [src]="item.imagen_url" [alt]="item.nombre" />
+                  }
+                  <div>
+                    <a [routerLink]="['/producto', item.producto_id]" class="cart-name">{{ item.nombre }}</a>
+                    <span class="cart-meta">{{ item.categoria }} · {{ item.precio | mxn }} c/u</span>
+                  </div>
+                </div>
+                <div class="cart-qty">× {{ item.cantidad }}</div>
+                <div class="cart-sub">{{ item.subtotal | mxn }}</div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="bento-card-soft panel-box">
+        <div class="panel-title-row">
+          <div>
+            <h2>Dirección de envío (México)</h2>
+            <p>Todos los campos son obligatorios. El código postal debe tener 5 dígitos.</p>
+          </div>
+        </div>
+
+        <form class="address-grid">
+          <div class="span-2">
+            <label class="bento-label" for="calle">Calle</label>
+            <input
+              id="calle"
+              class="bento-input"
+              type="text"
+              name="calle"
+              [(ngModel)]="direccion.calle"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="numero">Número</label>
+            <input
+              id="numero"
+              class="bento-input"
+              type="text"
+              name="numero"
+              [(ngModel)]="direccion.numero"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="colonia">Colonia</label>
+            <input
+              id="colonia"
+              class="bento-input"
+              type="text"
+              name="colonia"
+              [(ngModel)]="direccion.colonia"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="ciudad">Ciudad</label>
+            <input
+              id="ciudad"
+              class="bento-input"
+              type="text"
+              name="ciudad"
+              [(ngModel)]="direccion.ciudad"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="estado">Estado</label>
+            <input
+              id="estado"
+              class="bento-input"
+              type="text"
+              name="estado"
+              [(ngModel)]="direccion.estado"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="codigo_postal">Código postal</label>
+            <input
+              id="codigo_postal"
+              class="bento-input"
+              type="text"
+              maxlength="5"
+              name="codigo_postal"
+              [(ngModel)]="direccion.codigo_postal"
+              placeholder="06000"
+              [disabled]="!!pedidoActual()"
+            />
+          </div>
+        </form>
+      </article>
+    </div>
+
+    <!-- Panel derecho: Cotizador pastel + Simulador oscuro de pago -->
+    <aside class="right-stack">
+      <article class="bento-card bg-pastel-sky quote-card">
+        <div class="quote-head">
+          <span class="badge-pill badge-dark">Cotizador de Envío</span>
+          @if (cotizacion(); as cot) {
+            <span class="days-tag">{{ cot.dias_estimados }} días estimados</span>
+          }
+        </div>
+
+        <div class="quote-action-row">
+          <div>
+            <small>CP destino: <strong>{{ direccion.codigo_postal || '—' }}</strong></small>
+            <small>Unidades: <strong>{{ totalUnidades() }}</strong></small>
+          </div>
+          <button
+            type="button"
+            class="btn-outline btn-sm"
+            [disabled]="quoting() || !!pedidoActual()"
+            (click)="cotizarEnvio()"
+          >
+            {{ quoting() ? 'Cotizando...' : 'Cotizar envío' }}
+          </button>
+        </div>
+
+        <div class="totals-box">
+          <div class="total-line">
+            <span>Subtotal productos</span>
+            <strong>{{ (pedidoActual()?.subtotal ?? subtotalEstimado()) | mxn }}</strong>
+          </div>
+          <div class="total-line">
+            <span>Costo de envío</span>
+            <strong>
+              @if (pedidoActual()) {
+                {{ pedidoActual()!.costo_envio | mxn }}
+              } @else if (cotizacion()) {
+                {{ cotizacion()!.costo_envio | mxn }}
+              } @else {
+                Por cotizar
+              }
+            </strong>
+          </div>
+          <div class="total-line total-grand">
+            <span>Total a cobrar (MXN)</span>
+            <strong>{{ (pedidoActual()?.total ?? totalEstimado()) | mxn }}</strong>
+          </div>
+        </div>
+
+        @if (!pedidoActual()) {
+          <button
+            type="button"
+            class="btn-coral full-cta"
+            [disabled]="creatingOrder() || lineasCarrito().length === 0"
+            (click)="crearPedido()"
+          >
+            {{ creatingOrder() ? 'Creando pedido...' : 'Crear pedido' }}
+          </button>
+        }
+      </article>
+
+      <article class="bento-card-dark payment-card">
+        <span class="badge-pill badge-yellow">Simulador de Pago</span>
+
+        @if (!pedidoActual()) {
+          <h3>Paso 2: Simular pago</h3>
+          <p class="dark-muted">
+            Primero crea tu pedido para que el servidor calcule y bloquee los importes finales antes de cobrar.
+          </p>
+        } @else {
+          @if (pedidoActual(); as ord) {
+            <div class="order-status-head">
+              <h3>Pedido #{{ ord.id }}</h3>
+              <span
+                class="badge-pill"
+                [class.badge-success]="ord.estado === 'pagado'"
+                [class.badge-warning]="ord.estado === 'pendiente'"
+                [class.badge-danger]="ord.estado === 'cancelado'"
+              >
+                {{ ord.estado }} · {{ ord.estado_pago }}
+              </span>
+            </div>
+
+            <div class="server-total-pill">
+              <span>Importe calculado por servidor</span>
+              <strong>{{ ord.total | mxn }}</strong>
+            </div>
+
+            @if (ord.estado === 'pendiente') {
+              <div class="sim-controls">
+                <span class="sim-label">Resultado simulado</span>
+                <div class="sim-options">
+                  <button
+                    type="button"
+                    class="sim-pill"
+                    [class.active]="resultadoSimulado === 'aprobado'"
+                    [disabled]="pending202()"
+                    (click)="resultadoSimulado = 'aprobado'"
+                  >
+                    Aprobado
+                  </button>
+                  <button
+                    type="button"
+                    class="sim-pill"
+                    [class.active]="resultadoSimulado === 'rechazado'"
+                    [disabled]="pending202()"
+                    (click)="resultadoSimulado = 'rechazado'"
+                  >
+                    Rechazado
+                  </button>
+                </div>
+
+                @if (useMocks && !pending202()) {
+                  <label class="mock-202-toggle">
+                    <input type="checkbox" [(ngModel)]="simular202Mock" name="simular202Mock" />
+                    <span>Simular HTTP 202 (pago pendiente) en primer intento</span>
+                  </label>
+                }
+              </div>
+
+              @if (pending202()) {
+                <div class="pending-202-box">
+                  <strong>Pago en proceso (HTTP 202)</strong>
+                  <p>Tu carrito sigue bloqueado. Reintenta el mismo pedido para finalizar.</p>
+                </div>
+              }
+
+              <button type="button" class="btn-coral full-cta" [disabled]="paying()" (click)="pagarPedido()">
+                @if (paying()) {
+                  Procesando pago...
+                } @else if (pending202()) {
+                  Reintentar pago del pedido #{{ ord.id }}
+                } @else {
+                  Pagar {{ ord.total | mxn }}
+                }
+              </button>
+            } @else if (ord.estado === 'pagado') {
+              <div class="result-box result-ok">
+                <strong>¡Compra confirmada!</strong>
+                <p>Guía de envío: <strong>{{ ord.guia }}</strong></p>
+              </div>
+              <a routerLink="/pedidos" class="btn-coral full-cta">Ir a Mis Pedidos</a>
+            } @else {
+              <div class="result-box result-fail">
+                <strong>Pago rechazado</strong>
+                <p>El pedido quedó cancelado y tu carrito conservó sus productos para intentar una nueva compra.</p>
+              </div>
+              <button type="button" class="btn-coral full-cta" (click)="iniciarNuevoIntento()">
+                Crear nuevo pedido
+              </button>
+            }
+          }
+        }
+      </article>
+    </aside>
+  </section>
+}

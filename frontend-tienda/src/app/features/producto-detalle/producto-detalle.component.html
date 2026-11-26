@@ -1,0 +1,173 @@
+<div class="breadcrumb-row">
+  <a routerLink="/" class="bento-pill">← Volver al catálogo</a>
+</div>
+
+@if (loading()) {
+  <div class="detail-grid">
+    <div class="bento-card skeleton-box"></div>
+    <div class="bento-card skeleton-box"></div>
+  </div>
+} @else if (!producto()) {
+  <div class="bento-card-soft not-found">
+    <h2>Producto no encontrado</h2>
+    <p>El artículo que buscas no existe o fue retirado del catálogo.</p>
+    <a routerLink="/" class="btn-coral">Ir al inicio</a>
+  </div>
+} @else {
+  @if (producto(); as prod) {
+    <section class="detail-grid">
+      <!-- Columna izquierda: tarjeta visual, stock y botón carrito -->
+      <article class="bento-card bg-pastel-yellow detail-product-card">
+        <div class="detail-badges">
+          <span class="badge-pill badge-dark">{{ prod.categoria }}</span>
+          <span class="badge-pill rating-white">
+            ★ {{ promedio() !== null ? promedio()!.toFixed(1) : 'Sin reseñas' }}
+          </span>
+        </div>
+
+        <div class="detail-img-wrap">
+          <img [src]="prod.imagen_url" [alt]="prod.nombre" />
+        </div>
+
+        <div class="detail-copy">
+          <h1>{{ prod.nombre }}</h1>
+          <p>{{ prod.descripcion }}</p>
+        </div>
+
+        <div class="inventory-panel">
+          <div class="inventory-header">
+            <span>Disponibilidad en almacén</span>
+            <strong>
+              @if (disponible() === null) {
+                Sin registro
+              } @else if (disponible() === 0) {
+                Agotado
+              } @else {
+                {{ disponible() }} unidades disponibles
+              }
+            </strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="stockPercent()"></div>
+          </div>
+        </div>
+
+        <div class="purchase-bar">
+          <div>
+            <span class="price-caption">Precio unitario (MXN)</span>
+            <strong class="detail-price">{{ prod.precio | mxn }}</strong>
+          </div>
+
+          <div class="purchase-controls">
+            <div class="qty-stepper" aria-label="Cantidad">
+              <button type="button" (click)="cambiarCantidad(-1)" [disabled]="cantidad() <= 1">−</button>
+              <span>{{ cantidad() }}</span>
+              <button
+                type="button"
+                (click)="cambiarCantidad(1)"
+                [disabled]="disponible() !== null && cantidad() >= disponible()!"
+              >
+                +
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="btn-coral"
+              [disabled]="addingToCart() || disponible() === 0"
+              (click)="agregarAlCarrito()"
+            >
+              {{ addingToCart() ? 'Agregando...' : 'Agregar al carrito' }}
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Columna derecha: reseñas y formulario -->
+      <section class="reviews-column">
+        <div class="bento-card-soft reviews-summary-card">
+          <div class="summary-top">
+            <div>
+              <h2>Reseñas de clientes</h2>
+              <p>{{ resenas().length }} {{ resenas().length === 1 ? 'opinión registrada' : 'opiniones registradas' }}</p>
+            </div>
+            <div class="score-box">
+              <strong>{{ promedio() !== null ? promedio()!.toFixed(1) : '—' }}</strong>
+              <span>de 5.0</span>
+            </div>
+          </div>
+
+          <div class="reviews-list">
+            @if (resenas().length === 0) {
+              <p class="empty-reviews">Aún no hay reseñas para este producto. ¡Sé el primero en opinar!</p>
+            } @else {
+              @for (item of resenas(); track item.id) {
+                <article class="review-item">
+                  <div class="review-item-head">
+                    <span class="reviewer-tag">Cliente #{{ item.usuario_id }}</span>
+                    <span class="stars-row">
+                      @for (filled of starsArray(item.calificacion); track $index) {
+                        <span [class.star-off]="filled === 0">★</span>
+                      }
+                    </span>
+                  </div>
+                  <p>{{ item.comentario }}</p>
+                </article>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="bento-card bg-pastel-lilac review-form-card">
+          <h3>Escribe tu reseña</h3>
+
+          @if (!auth.isAuthenticated()) {
+            <p class="auth-hint">Inicia sesión con tu cuenta de cliente para calificar este producto.</p>
+            <button type="button" class="btn-coral" (click)="auth.openModal('login')">
+              Iniciar sesión para opinar
+            </button>
+          } @else {
+            @if (reviewError()) {
+              <div class="review-alert">{{ reviewError() }}</div>
+            }
+
+            <form class="review-form" (ngSubmit)="publicarResena()">
+              <div>
+                <span class="bento-label">Calificación</span>
+                <div class="star-picker">
+                  @for (n of [1, 2, 3, 4, 5]; track n) {
+                    <button
+                      type="button"
+                      class="star-btn"
+                      [class.selected]="calificacionForm() >= n"
+                      (click)="calificacionForm.set(n)"
+                    >
+                      ★ {{ n }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div>
+                <label class="bento-label" for="comentarioInput">Tu comentario</label>
+                <textarea
+                  id="comentarioInput"
+                  class="bento-input"
+                  rows="3"
+                  name="comentarioForm"
+                  [(ngModel)]="comentarioForm"
+                  placeholder="Cuéntanos qué te pareció el producto..."
+                  required
+                ></textarea>
+              </div>
+
+              <button type="submit" class="btn-coral" [disabled]="submittingReview()">
+                {{ submittingReview() ? 'Publicando...' : 'Publicar reseña' }}
+              </button>
+            </form>
+          }
+        </div>
+      </section>
+    </section>
+  }
+}
