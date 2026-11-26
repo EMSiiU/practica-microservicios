@@ -43,6 +43,8 @@ services:
   # MICROSERVICIOS (INTEGRANTE 1)
   # ============================================================================
   api-usuarios:
+    volumes:
+      - usuarios_data:/app/data
     build:
       context: ./api-usuarios
       dockerfile: Dockerfile
@@ -227,6 +229,7 @@ services:
       - red-tienda
 
 volumes:
+  usuarios_data:
   postgres_data:
   mongo_data:
 
