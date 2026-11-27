@@ -35,6 +35,13 @@ spec:
                 secretKeyRef:
                   name: tienda-secrets
                   key: DATABASE_URL_PEDIDOS
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
           readinessProbe:
             tcpSocket:
               port: 8006
