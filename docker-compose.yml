@@ -210,6 +210,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-clave_secreta_super_segura_tienda_2026}
       CORS_ORIGINS: ${CORS_ORIGIN:-http://localhost:4200}
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/db_resenas}
+      API_PEDIDOS_URL: http://api-pedidos:8006
     depends_on:
       mongo:
         condition: service_healthy

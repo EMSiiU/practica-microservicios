@@ -1,13 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { environment } from '../../../environments/environment';
+import { Router, RouterLink } from '@angular/router';
 import {
   CotizarEnvioResponse,
   Direccion,
   Pedido,
   Producto,
-  ResultadoSimulado,
 } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { CarritoService } from '../../core/services/carrito.service';
@@ -41,9 +39,10 @@ export class CarritoCheckoutComponent implements OnInit {
   private readonly enviosService = inject(EnviosService);
   private readonly pedidosService = inject(PedidosService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
-  readonly useMocks = environment.useMocks;
   readonly productosMap = signal<Map<number, Producto>>(new Map());
+  readonly pedidoPendiente = signal<Pedido | null>(null);
 
   readonly direccion: Direccion = {
     calle: 'República de Brasil',
@@ -56,14 +55,7 @@ export class CarritoCheckoutComponent implements OnInit {
 
   readonly cotizacion = signal<CotizarEnvioResponse | null>(null);
   readonly quoting = signal(false);
-
-  readonly pedidoActual = signal<Pedido | null>(null);
   readonly creatingOrder = signal(false);
-
-  resultadoSimulado: ResultadoSimulado = 'aprobado';
-  simular202Mock = false;
-  readonly paying = signal(false);
-  readonly pending202 = signal(false);
 
   readonly lineasCarrito = computed<LineaCarritoVM[]>(() => {
     const prodMap = this.productosMap();
@@ -107,11 +99,20 @@ export class CarritoCheckoutComponent implements OnInit {
     });
 
     if (this.auth.isAuthenticated()) {
-      this.carritoService.loadCarrito().subscribe({
+      const uid = this.auth.user()!.id;
+      this.carritoService.loadCarrito(uid).subscribe({
         next: () => {
           if (this.totalUnidades() > 0 && /^\d{5}$/.test(this.direccion.codigo_postal)) {
             this.cotizarEnvio();
           }
+        },
+        error: () => {},
+      });
+
+      this.pedidosService.getPedidosUsuario(uid).subscribe({
+        next: (pedidos) => {
+          const pendiente = pedidos.find((p) => p.estado === 'pendiente') ?? null;
+          this.pedidoPendiente.set(pendiente);
         },
         error: () => {},
       });
@@ -178,7 +179,6 @@ export class CarritoCheckoutComponent implements OnInit {
     if (!this.validarDireccion()) return;
 
     this.creatingOrder.set(true);
-    this.pending202.set(false);
 
     this.pedidosService
       .crearPedido({
@@ -194,70 +194,14 @@ export class CarritoCheckoutComponent implements OnInit {
       .subscribe({
         next: (pedido) => {
           this.creatingOrder.set(false);
-          this.pedidoActual.set(pedido);
-          this.toast.success('Pedido creado', `Orden #${pedido.id} lista para simular el pago.`);
+          this.pedidosService.setPedidoActivo(pedido);
+          this.toast.success('Pedido creado', `Orden #${pedido.id} lista. Pasando a la pantalla de pago.`);
+          this.router.navigate(['/checkout', pedido.id]);
         },
         error: (err) => {
           this.creatingOrder.set(false);
           this.toast.showApiError(err);
         },
       });
-  }
-
-  pagarPedido(): void {
-    const pedido = this.pedidoActual();
-    if (!pedido) return;
-
-    this.paying.set(true);
-    this.carritoService.setLocked(true);
-
-    const force202 = this.useMocks && this.simular202Mock && !this.pending202();
-
-    this.pedidosService.pagarPedido(pedido.id, this.resultadoSimulado, force202).subscribe({
-      next: ({ status, body }) => {
-        this.paying.set(false);
-        this.pedidoActual.set(body);
-
-        if (status === 202) {
-          this.pending202.set(true);
-          this.simular202Mock = false;
-          this.carritoService.setLocked(true);
-          this.toast.warning(
-            'Pago pendiente (HTTP 202)',
-            'El checkout sigue en curso. El carrito permanece bloqueado; reintenta el mismo pedido para completar.'
-          );
-          return;
-        }
-
-        this.pending202.set(false);
-        this.carritoService.setLocked(false);
-
-        if (body.estado_pago === 'aprobado') {
-          this.carritoService.loadCarrito().subscribe({ error: () => {} });
-          this.toast.success(
-            'Pago aprobado',
-            `Orden #${body.id} pagada. Guía generada: ${body.guia ?? 'pendiente'}.`
-          );
-        } else {
-          this.toast.warning(
-            'Pago rechazado',
-            `Orden #${body.id} cancelada. Tu carrito conserva sus productos.`
-          );
-        }
-      },
-      error: (err) => {
-        this.paying.set(false);
-        if (!this.pending202()) {
-          this.carritoService.setLocked(false);
-        }
-        this.toast.showApiError(err);
-      },
-    });
-  }
-
-  iniciarNuevoIntento(): void {
-    this.pedidoActual.set(null);
-    this.pending202.set(false);
-    this.carritoService.setLocked(false);
   }
 }

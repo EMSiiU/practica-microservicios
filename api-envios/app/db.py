@@ -62,3 +62,23 @@ def rastrear_guia(guia: str) -> sqlite3.Row | None:
             "SELECT guia, estado FROM envios WHERE guia = ?",
             (guia,),
         ).fetchone()
+
+
+def listar_envios() -> list[sqlite3.Row]:
+    with abrir_base() as db:
+        return db.execute(
+            "SELECT pedido_id, guia, estado FROM envios ORDER BY pedido_id DESC"
+        ).fetchall()
+
+
+def actualizar_estado_guia(guia: str, estado: str) -> sqlite3.Row | None:
+    with abrir_base() as db:
+        return db.execute(
+            """
+            UPDATE envios
+            SET estado = ?
+            WHERE guia = ?
+            RETURNING pedido_id, guia, estado
+            """,
+            (estado, guia),
+        ).fetchone()

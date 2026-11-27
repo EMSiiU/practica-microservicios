@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockStoreService } from '../mocks/mock-store.service';
-import { Producto } from '../models/api.models';
+import { CrearProductoRequest, Producto } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ProductosService {
@@ -22,5 +22,9 @@ export class ProductosService {
       return this.mockStore.getProducto(id);
     }
     return this.http.get<Producto>(`${environment.apiUrls.productos}/api/productos/${id}`);
+  }
+
+  crearProducto(payload: CrearProductoRequest): Observable<Producto> {
+    return this.http.post<Producto>(`${environment.apiUrls.productos}/api/productos`, payload);
   }
 }

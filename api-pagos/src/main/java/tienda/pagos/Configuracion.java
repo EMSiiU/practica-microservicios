@@ -49,5 +49,8 @@ class Configuracion implements WebMvcConfigurer {
                 .allowedOrigins(origen)
                 .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type");
+        registro.addMapping("/health")
+                .allowedOrigins(origen)
+                .allowedMethods("GET", "OPTIONS");
     }
 }

@@ -12,6 +12,12 @@
   font-weight: 800;
 }
 
+.pending-banner-link {
+  background: var(--yellow);
+  border-color: var(--charcoal);
+  font-size: 0.82rem;
+}
+
 .subtitle {
   margin: 4px 0 0;
   font-size: 0.9rem;

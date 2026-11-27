@@ -1,0 +1,173 @@
+<section class="checkout-top">
+  <div>
+    <a routerLink="/pedidos" class="bento-pill back-pill">← Volver a Mis Pedidos</a>
+    <h1>Checkout y Pago</h1>
+    <p class="subtitle">Revisa los artículos de tu orden y confirma el pago simulado.</p>
+  </div>
+</section>
+
+@if (!auth.isAuthenticated()) {
+  <div class="bento-card-soft empty-box">
+    <h2>Inicia sesión para continuar con el pago</h2>
+    <p>Solo el titular del pedido puede procesar el pago.</p>
+    <button type="button" class="btn-coral" (click)="auth.openModal('login')">Iniciar sesión</button>
+  </div>
+} @else if (loading()) {
+  <div class="bento-card-soft empty-box">Cargando resumen del pedido...</div>
+} @else if (!pedido()) {
+  <div class="bento-card-soft empty-box">
+    <h2>No hay ningún pedido seleccionado para pagar</h2>
+    <p>Crea un pedido desde tu carrito o selecciona una orden pendiente en Mis Pedidos.</p>
+    <div class="empty-actions">
+      <a routerLink="/carrito" class="btn-outline">Ir al carrito</a>
+      <a routerLink="/pedidos" class="btn-coral">Ver Mis Pedidos</a>
+    </div>
+  </div>
+} @else {
+  @if (pedido(); as ord) {
+    <section class="pago-grid">
+      <!-- Panel izquierdo: resumen de productos a pagar + dirección -->
+      <div class="left-col">
+        <article class="bento-card-soft card-box">
+          <div class="box-head">
+            <div>
+              <h2>Productos a pagar</h2>
+              <p>{{ productosResumen().length }} {{ productosResumen().length === 1 ? 'artículo' : 'artículos' }} en el Pedido #{{ ord.id }}</p>
+            </div>
+            <span class="badge-pill badge-neutral">Orden #{{ ord.id }}</span>
+          </div>
+
+          <div class="summary-items-list">
+            @for (item of productosResumen(); track item.producto_id) {
+              <div class="summary-item-row">
+                <a [routerLink]="['/producto', item.producto_id]" class="item-main">
+                  @if (item.imagen_url) {
+                    <img [src]="item.imagen_url" [alt]="item.nombre" />
+                  } @else {
+                    <div class="img-fallback">#{{ item.producto_id }}</div>
+                  }
+                  <div class="item-copy">
+                    <span class="item-cat">{{ item.categoria }}</span>
+                    <strong>{{ item.nombre }}</strong>
+                    <span class="item-unit">{{ item.cantidad }} × {{ item.precio_unitario | mxn }}</span>
+                  </div>
+                </a>
+                <strong class="item-sub">{{ item.subtotal | mxn }}</strong>
+              </div>
+            }
+          </div>
+        </article>
+
+        <article class="bento-card-soft card-box">
+          <h2>Dirección de entrega</h2>
+          <p class="address-line">
+            {{ ord.direccion.calle }} #{{ ord.direccion.numero }}, Col. {{ ord.direccion.colonia }}<br />
+            {{ ord.direccion.ciudad }}, {{ ord.direccion.estado }} · CP {{ ord.direccion.codigo_postal }}
+          </p>
+        </article>
+      </div>
+
+      <!-- Panel derecho oscuro: desglose + simulador de pago -->
+      <aside class="bento-card-dark payment-panel">
+        <div class="payment-top">
+          <span class="badge-pill badge-yellow">Simulador de Pago</span>
+          <span
+            class="badge-pill"
+            [class.badge-success]="ord.estado === 'pagado' || ord.estado === 'enviado'"
+            [class.badge-warning]="ord.estado === 'pendiente'"
+            [class.badge-danger]="ord.estado === 'cancelado'"
+          >
+            {{ ord.estado }} · {{ ord.estado_pago }}
+          </span>
+        </div>
+
+        <h2>Pedido #{{ ord.id }}</h2>
+
+        <div class="server-breakdown">
+          <div>
+            <span>Subtotal productos</span>
+            <strong>{{ ord.subtotal | mxn }}</strong>
+          </div>
+          <div>
+            <span>Costo de envío</span>
+            <strong>{{ ord.costo_envio | mxn }}</strong>
+          </div>
+          <div class="total-row">
+            <span>Total calculado</span>
+            <strong>{{ ord.total | mxn }}</strong>
+          </div>
+        </div>
+
+        @if (ord.estado === 'pendiente') {
+          <div class="sim-controls">
+            <span class="sim-label">Resultado simulado</span>
+            <div class="sim-options">
+              <button
+                type="button"
+                class="sim-pill"
+                [class.active]="resultadoSimulado === 'aprobado'"
+                [disabled]="pending202()"
+                (click)="resultadoSimulado = 'aprobado'"
+              >
+                Aprobado
+              </button>
+              <button
+                type="button"
+                class="sim-pill"
+                [class.active]="resultadoSimulado === 'rechazado'"
+                [disabled]="pending202()"
+                (click)="resultadoSimulado = 'rechazado'"
+              >
+                Rechazado
+              </button>
+            </div>
+
+            @if (useMocks && !pending202()) {
+              <label class="mock-202-toggle">
+                <input type="checkbox" [(ngModel)]="simular202Mock" name="simular202Mock" />
+                <span>Simular HTTP 202 (pago pendiente) en primer intento</span>
+              </label>
+            }
+          </div>
+
+          @if (pending202()) {
+            <div class="pending-202-box">
+              <strong>Pago en proceso (HTTP 202)</strong>
+              <p>Reintenta el mismo pedido para completar la operación.</p>
+            </div>
+          }
+
+          <button type="button" class="btn-coral full-cta" [disabled]="paying()" (click)="pagarPedido()">
+            @if (paying()) {
+              Procesando pago...
+            } @else if (pending202()) {
+              Reintentar pago del pedido #{{ ord.id }}
+            } @else {
+              Pagar {{ ord.total | mxn }}
+            }
+          </button>
+        } @else if (ord.estado === 'pagado' || ord.estado === 'enviado') {
+          <div class="result-box result-ok">
+            <strong>¡Compra confirmada!</strong>
+            <p>Guía generada:</p>
+            <code class="result-guide">{{ ord.guia }}</code>
+          </div>
+          <div class="done-actions">
+            @if (ord.guia) {
+              <button type="button" class="btn-coral full-cta" (click)="irRastrear(ord.guia)">
+                Rastrear envío
+              </button>
+            }
+            <a routerLink="/pedidos" class="btn-outline-light full-cta">Ver Mis Pedidos</a>
+          </div>
+        } @else {
+          <div class="result-box result-fail">
+            <strong>Pago rechazado</strong>
+            <p>Este pedido fue cancelado. Tus artículos siguen disponibles en tu carrito para crear una nueva orden.</p>
+          </div>
+          <a routerLink="/carrito" class="btn-coral full-cta">Volver al carrito</a>
+        }
+      </aside>
+    </section>
+  }
+}

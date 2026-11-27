@@ -19,6 +19,8 @@ metadata:
     app: mongo
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mongo
@@ -53,9 +55,10 @@ spec:
                 - --quiet
                 - --eval
                 - db.adminCommand('ping').ok
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
         - name: mongo-data
           persistentVolumeClaim:

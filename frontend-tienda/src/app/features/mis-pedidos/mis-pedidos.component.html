@@ -1,7 +1,7 @@
 <section class="orders-header">
   <div>
     <h1>Mis Pedidos</h1>
-    <p class="subtitle">Consulta el historial de órdenes, comprobantes de pago y rastreo de envío.</p>
+    <p class="subtitle">Consulta el detalle de tus compras, comprobantes de pago y seguimiento en ruta.</p>
   </div>
 
   @if (auth.isAuthenticated()) {
@@ -26,72 +26,110 @@
     <a routerLink="/" class="btn-coral">Ir al catálogo</a>
   </div>
 } @else {
-  <section class="bento-card-soft orders-table-card">
-    <div class="orders-table">
-      <div class="order-row order-head">
-        <span>Orden</span>
-        <span>Artículos</span>
-        <span>Total MXN</span>
-        <span>Estado</span>
-        <span>Pago</span>
-        <span>Guía</span>
-        <span class="text-right">Acciones</span>
-      </div>
-
-      @for (pedido of pedidos(); track pedido.id) {
-        <div class="order-row">
-          <div>
-            <strong class="order-id">Pedido #{{ pedido.id }}</strong>
-            <span class="order-city">{{ pedido.direccion.ciudad }}, CP {{ pedido.direccion.codigo_postal }}</span>
+  <section class="orders-cards-stack">
+    @for (pedido of pedidos(); track pedido.id) {
+      <article class="bento-card-soft order-card">
+        <!-- Cabecera de la tarjeta -->
+        <header class="order-card-head">
+          <div class="order-title-group">
+            <div class="order-number-row">
+              <h2>Pedido #{{ pedido.id }}</h2>
+              <span
+                class="badge-pill"
+                [class.badge-success]="pedido.estado === 'pagado' || pedido.estado === 'enviado'"
+                [class.badge-warning]="pedido.estado === 'pendiente'"
+                [class.badge-danger]="pedido.estado === 'cancelado'"
+              >
+                Estado: {{ pedido.estado }}
+              </span>
+              <span
+                class="badge-pill"
+                [class.badge-success]="pedido.estado_pago === 'aprobado'"
+                [class.badge-warning]="pedido.estado_pago === 'en_proceso' || pedido.estado_pago === 'sin_pago'"
+                [class.badge-danger]="pedido.estado_pago === 'rechazado'"
+              >
+                Pago: {{ pedido.estado_pago }}
+              </span>
+              @if (estadoEnvio(pedido.guia); as envEstado) {
+                <span
+                  class="badge-pill"
+                  [class.badge-success]="envEstado === 'entregado'"
+                  [class.badge-yellow]="envEstado === 'en_transito'"
+                  [class.badge-warning]="envEstado === 'preparando'"
+                >
+                  Envío: {{ envEstado === 'en_transito' ? 'en tránsito' : envEstado }}
+                </span>
+              }
+            </div>
+            <p class="order-address">
+              Entrega en {{ pedido.direccion.calle }} #{{ pedido.direccion.numero }}, Col. {{ pedido.direccion.colonia }},
+              {{ pedido.direccion.ciudad }}, {{ pedido.direccion.estado }} · CP {{ pedido.direccion.codigo_postal }}
+            </p>
           </div>
 
-          <div class="order-items-count">{{ totalArticulos(pedido) }} uds.</div>
-
-          <div class="order-total">{{ pedido.total | mxn }}</div>
-
-          <div>
-            <span
-              class="badge-pill"
-              [class.badge-success]="pedido.estado === 'pagado' || pedido.estado === 'enviado'"
-              [class.badge-warning]="pedido.estado === 'pendiente'"
-              [class.badge-danger]="pedido.estado === 'cancelado'"
-            >
-              {{ pedido.estado }}
+          <div class="order-amounts">
+            <span class="amount-breakdown">
+              Subtotal {{ pedido.subtotal | mxn }} · Envío {{ pedido.costo_envio | mxn }}
             </span>
+            <strong class="order-total-big">{{ pedido.total | mxn }}</strong>
           </div>
+        </header>
 
-          <div>
-            <span
-              class="badge-pill"
-              [class.badge-success]="pedido.estado_pago === 'aprobado'"
-              [class.badge-warning]="pedido.estado_pago === 'en_proceso' || pedido.estado_pago === 'sin_pago'"
-              [class.badge-danger]="pedido.estado_pago === 'rechazado'"
-            >
-              {{ pedido.estado_pago }}
-            </span>
-          </div>
+        <!-- Productos incluidos en la orden -->
+        <div class="order-products-grid">
+          @for (item of pedido.items; track item.producto_id) {
+            @let prod = productoDeItem(item.producto_id);
+            <a [routerLink]="['/producto', item.producto_id]" class="order-product-box">
+              @if (prod?.imagen_url) {
+                <img [src]="prod!.imagen_url" [alt]="prod!.nombre" class="order-prod-img" loading="lazy" />
+              } @else {
+                <div class="order-prod-fallback">#{{ item.producto_id }}</div>
+              }
+              <div class="order-prod-meta">
+                <span class="order-prod-cat">{{ prod?.categoria ?? 'Producto' }}</span>
+                <strong class="order-prod-name">{{ prod?.nombre ?? ('Producto #' + item.producto_id) }}</strong>
+                <span class="order-prod-calc">
+                  {{ item.cantidad }} {{ item.cantidad === 1 ? 'unidad' : 'unidades' }} × {{ item.precio_unitario | mxn }}
+                  · <strong>{{ (item.cantidad * item.precio_unitario) | mxn }}</strong>
+                </span>
+              </div>
+            </a>
+          }
+        </div>
 
-          <div>
+        <!-- Pie de tarjeta con guía y acciones -->
+        <footer class="order-card-foot">
+          <div class="guide-info">
+            <span class="guide-label">Guía de envío:</span>
             @if (pedido.guia) {
-              <span class="guia-chip">{{ pedido.guia }}</span>
+              <code class="guia-pill">{{ pedido.guia }}</code>
+              <button type="button" class="copy-guia-btn" (click)="copiarGuia(pedido.guia)">
+                {{ copiedGuia() === pedido.guia ? '¡Copiada!' : 'Copiar' }}
+              </button>
             } @else {
-              <span class="guia-empty">Sin guía</span>
+              <span class="guia-pending">Se asignará al aprobar el pago</span>
             }
           </div>
 
-          <div class="order-actions">
-            <button type="button" class="bento-pill btn-xs" (click)="verComprobante(pedido)">
-              Comprobante
-            </button>
+          <div class="order-card-actions">
+            @if (pedido.estado === 'pendiente') {
+              <button type="button" class="btn-coral btn-sm" (click)="continuarPago(pedido)">
+                Pagar ahora
+              </button>
+            } @else {
+              <button type="button" class="bento-pill btn-sm" (click)="verComprobante(pedido)">
+                Ver comprobante
+              </button>
+            }
             @if (pedido.guia) {
-              <button type="button" class="btn-coral btn-xs" (click)="verRastreo(pedido.guia)">
-                Rastrear
+              <button type="button" class="btn-coral btn-sm" (click)="verRastreo(pedido.guia)">
+                Rastrear envío
               </button>
             }
           </div>
-        </div>
-      }
-    </div>
+        </footer>
+      </article>
+    }
   </section>
 }
 
@@ -134,35 +172,16 @@
   </div>
 }
 
-<!-- Modal Rastreo de Envío -->
+<!-- Modal Rastreo de Envío con Camión Visual -->
 @if (rastreoModal(); as env) {
   <div class="modal-backdrop" (click)="rastreoModal.set(null)">
-    <div class="modal-box bento-card bg-pastel-sky" (click)="$event.stopPropagation()">
+    <div class="modal-box modal-box-wide bento-card bg-pastel-sky" (click)="$event.stopPropagation()">
       <div class="modal-top">
-        <span class="badge-pill badge-dark">Rastreo de Envío</span>
+        <span class="badge-pill badge-dark">Seguimiento de tu Envío</span>
         <button type="button" class="close-btn" (click)="rastreoModal.set(null)">×</button>
       </div>
 
-      <h3>Guía {{ env.guia }}</h3>
-
-      <div class="tracking-steps">
-        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 1">
-          <div class="dot">1</div>
-          <span>Preparando</span>
-        </div>
-        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 2">
-          <div class="dot">2</div>
-          <span>En tránsito</span>
-        </div>
-        <div class="track-step" [class.reached]="pasoRastreo(env.estado) >= 3">
-          <div class="dot">3</div>
-          <span>Entregado</span>
-        </div>
-      </div>
-
-      <p class="tracking-note">
-        Estado actual reportado por Envíos: <strong>{{ env.estado }}</strong>
-      </p>
+      <app-tracking-road [guia]="env.guia" [estado]="env.estado" />
 
       <button type="button" class="btn-coral modal-close-cta" (click)="rastreoModal.set(null)">
         Cerrar rastreo

@@ -230,10 +230,37 @@
   padding: 22px;
 }
 
+.review-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .review-form-card h3 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
+}
+
+.purchase-required-box {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(35, 35, 35, 0.16);
+}
+
+.purchase-required-box strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.purchase-required-box p {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: var(--text-main);
 }
 
 .auth-hint {

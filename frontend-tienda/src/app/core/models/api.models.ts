@@ -51,9 +51,22 @@ export interface Producto {
   imagen_url: string;
 }
 
+export interface CrearProductoRequest {
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  categoria: string;
+  imagen_url: string;
+}
+
 export interface Inventario {
   producto_id: number;
   disponible: number;
+}
+
+export interface ReabastecerRequest {
+  producto_id: number;
+  cantidad: number;
 }
 
 export interface Resena {
@@ -112,6 +125,12 @@ export interface CotizarEnvioResponse {
 }
 
 export interface RastreoEnvio {
+  guia: string;
+  estado: EstadoRastreo;
+}
+
+export interface EnvioDetalle {
+  pedido_id: number;
   guia: string;
   estado: EstadoRastreo;
 }

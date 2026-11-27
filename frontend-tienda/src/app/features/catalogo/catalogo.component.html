@@ -1,185 +1,166 @@
-<section class="catalogo-header">
+<section class="storefront-header">
   <div>
-    <h1>Explora el catálogo</h1>
-    <p class="subtitle">Productos listos para envío en México con disponibilidad y reseñas verificadas.</p>
-  </div>
-
-  <div class="category-pills" role="tablist" aria-label="Filtrar por categoría">
-    @for (cat of categories(); track cat) {
-      <button
-        type="button"
-        class="bento-pill"
-        [class.active]="selectedCategory() === cat"
-        (click)="selectCategory(cat)"
-      >
-        {{ cat }}
-      </button>
-    }
+    <h1>Catálogo de productos</h1>
+    <p class="subtitle">Explora artículos disponibles con envío a todo México, inventario en tiempo real y reseñas.</p>
   </div>
 </section>
 
-@if (loading()) {
-  <div class="bento-grid-top">
-    @for (skeleton of [1, 2, 3]; track skeleton) {
-      <div class="bento-card skeleton-card"></div>
-    }
-  </div>
-} @else if (filteredItems().length === 0) {
-  <div class="bento-card-soft empty-state">
-    <h3>No encontramos productos para tu búsqueda</h3>
-    <p>Prueba seleccionando otra categoría o limpiando el buscador superior.</p>
-    <button type="button" class="btn-coral" (click)="selectCategory('Todos')">Ver todos los productos</button>
-  </div>
-} @else {
-  <!-- Fila superior de 3 tarjetas pastel Bento -->
-  <section class="bento-grid-top">
-    @for (vm of featuredCards(); track vm.producto.id; let i = $index) {
-      <article class="bento-card product-bento" [class]="pastelClass(i)">
-        <div class="card-top-row">
-          <span class="badge-pill badge-dark">{{ vm.producto.categoria }}</span>
-          <span class="rating-pill">
-            ★ {{ vm.promedio !== null ? vm.promedio.toFixed(1) : 'Nuevo' }}
-          </span>
-        </div>
+<div class="storefront-layout">
+  <!-- Panel lateral de filtros -->
+  <aside class="filters-panel bento-card-soft" aria-label="Filtros del catálogo">
+    <div class="filters-head">
+      <h2>Filtros</h2>
+      @if (hasActiveFilters()) {
+        <button type="button" class="clear-link" (click)="clearFilters()">Limpiar</button>
+      }
+    </div>
 
-        <a [routerLink]="['/producto', vm.producto.id]" class="card-title-link">
-          <div class="thumb-wrap">
-            <img [src]="vm.producto.imagen_url" [alt]="vm.producto.nombre" />
-          </div>
-          <h3>{{ vm.producto.nombre }}</h3>
-          <p class="card-desc">{{ vm.producto.descripcion }}</p>
-        </a>
-
-        <div class="stock-row">
-          <div class="stock-labels">
-            <span>Disponibilidad</span>
-            <strong>
-              {{ vm.disponible !== null ? vm.disponible + ' uds.' : 'Sin registro' }}
-            </strong>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" [style.width.%]="stockPercent(vm.disponible)"></div>
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <div class="price-box">
-            <span class="price-label">Precio</span>
-            <strong class="price-value">{{ vm.producto.precio | mxn }}</strong>
-          </div>
-
-          <div class="card-actions">
-            <a [routerLink]="['/producto', vm.producto.id]" class="btn-outline btn-sm">Ver detalle</a>
-            <button
-              type="button"
-              class="btn-coral btn-sm"
-              [disabled]="addingId() === vm.producto.id || vm.disponible === 0"
-              (click)="agregarRapido(vm)"
-            >
-              {{ addingId() === vm.producto.id ? '...' : 'Agregar' }}
-            </button>
-          </div>
-        </div>
-      </article>
-    }
-  </section>
-
-  <!-- Sección inferior dividida: Listado blanco izquierda + Tarjeta oscura derecha -->
-  <section class="bento-split-bottom">
-    <div class="bento-card-soft catalog-list-panel">
-      <div class="panel-head">
-        <div>
-          <h2>Más productos disponibles</h2>
-          <p class="panel-sub">Consulta detalles, existencias o agrégalos directo a tu compra.</p>
-        </div>
-        <span class="badge-pill badge-neutral">{{ listItems().length }} artículos</span>
-      </div>
-
-      <div class="list-table">
-        <div class="list-row list-row-head">
-          <span>Producto</span>
-          <span>Reseñas</span>
-          <span>Stock</span>
-          <span>Precio</span>
-          <span class="text-right">Acción</span>
-        </div>
-
-        @for (vm of listItems(); track vm.producto.id) {
-          <div class="list-row">
-            <div class="list-product-cell">
-              <img [src]="vm.producto.imagen_url" [alt]="vm.producto.nombre" class="mini-thumb" />
-              <div>
-                <a [routerLink]="['/producto', vm.producto.id]" class="list-title">{{ vm.producto.nombre }}</a>
-                <span class="list-cat">{{ vm.producto.categoria }}</span>
-              </div>
-            </div>
-
-            <div class="list-rating">
-              <span class="star-dot">★</span>
-              <span>{{ vm.promedio !== null ? vm.promedio.toFixed(1) : '—' }}</span>
-              <small>({{ vm.totalResenas }})</small>
-            </div>
-
-            <div>
-              <span
-                class="badge-pill"
-                [class.badge-success]="(vm.disponible ?? 0) > 3"
-                [class.badge-warning]="(vm.disponible ?? 0) > 0 && (vm.disponible ?? 0) <= 3"
-                [class.badge-danger]="(vm.disponible ?? 0) === 0"
-              >
-                {{ vm.disponible !== null ? vm.disponible + ' disp.' : 'N/D' }}
-              </span>
-            </div>
-
-            <div class="list-price">{{ vm.producto.precio | mxn }}</div>
-
-            <div class="list-actions">
-              <a [routerLink]="['/producto', vm.producto.id]" class="link-detail">Ver detalle</a>
-              <button
-                type="button"
-                class="btn-coral btn-xs"
-                [disabled]="addingId() === vm.producto.id || vm.disponible === 0"
-                (click)="agregarRapido(vm)"
-              >
-                Agregar
-              </button>
-            </div>
-          </div>
+    <div class="filter-group">
+      <span class="filter-label">Categoría</span>
+      <div class="filter-chips">
+        @for (cat of categoryOptions(); track cat.name) {
+          <button
+            type="button"
+            class="filter-chip"
+            [class.active]="selectedCategory() === cat.name"
+            (click)="selectCategory(cat.name)"
+          >
+            <span>{{ cat.name }}</span>
+            <span class="chip-count">{{ cat.count }}</span>
+          </button>
         }
       </div>
     </div>
 
-    @if (spotlightProduct(); as spot) {
-      <aside class="bento-card-dark spotlight-card">
-        <span class="spotlight-kicker">Recomendado para tu compra</span>
+    <div class="filter-group">
+      <span class="filter-label">Precio (MXN)</span>
+      <div class="price-filter-list">
+        @for (range of priceRanges(); track range.key) {
+          <button
+            type="button"
+            class="price-row"
+            [class.active]="priceRange() === range.key"
+            (click)="togglePriceRange(range.key)"
+          >
+            <span class="price-row-label">{{ range.label }}</span>
+            <span class="price-bar-track">
+              <span class="price-bar-fill" [style.width.%]="range.pct"></span>
+            </span>
+            <span class="price-row-count">{{ range.count }}</span>
+          </button>
+        }
+      </div>
+    </div>
 
-        <div class="spotlight-badge-row">
-          <span class="badge-pill badge-yellow">{{ spot.producto.categoria }}</span>
-          <span class="spotlight-rating">
-            ★ {{ spot.promedio !== null ? spot.promedio.toFixed(1) : '5.0' }}
-          </span>
-        </div>
+    <div class="filter-group">
+      <span class="filter-label">Disponibilidad</span>
+      <label class="stock-toggle-row">
+        <span>
+          En stock <small class="muted-count">{{ inStockCount() }}</small>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          class="switch-btn"
+          [attr.aria-checked]="onlyInStock()"
+          [class.checked]="onlyInStock()"
+          (click)="toggleInStock()"
+        >
+          <span class="switch-thumb"></span>
+        </button>
+      </label>
+    </div>
+  </aside>
 
-        <h3>{{ spot.producto.nombre }}</h3>
-        <p class="spotlight-desc">{{ spot.producto.descripcion }}</p>
+  <!-- Cuadrícula uniforme de productos -->
+  <section class="catalog-main">
+    <div class="catalog-toolbar">
+      <span class="results-count">
+        {{ sortedItems().length }} {{ sortedItems().length === 1 ? 'producto' : 'productos' }}
+      </span>
 
-        <div class="spotlight-meta">
-          <div>
-            <small>Precio MXN</small>
-            <strong>{{ spot.producto.precio | mxn }}</strong>
-          </div>
-          <div>
-            <small>Inventario</small>
-            <strong>{{ spot.disponible ?? 0 }} disponibles</strong>
-          </div>
-        </div>
+      <label class="sort-control">
+        <span>Ordenar por</span>
+        <select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" aria-label="Ordenar productos">
+          <option value="featured">Destacados</option>
+          <option value="price_asc">Precio: menor a mayor</option>
+          <option value="price_desc">Precio: mayor a menor</option>
+          <option value="rating_desc">Mejor calificados</option>
+        </select>
+      </label>
+    </div>
 
-        <div class="spotlight-actions">
-          <a [routerLink]="['/producto', spot.producto.id]" class="btn-coral spotlight-cta">
-            Ver detalle
-          </a>
-        </div>
-      </aside>
+    @if (loading()) {
+      <div class="products-grid">
+        @for (skeleton of [1, 2, 3, 4, 5, 6]; track skeleton) {
+          <div class="product-card skeleton-card"></div>
+        }
+      </div>
+    } @else if (sortedItems().length === 0) {
+      <div class="bento-card-soft empty-state">
+        <h3>No encontramos productos con esos filtros</h3>
+        <p>Prueba seleccionando otra categoría, rango de precio o limpiando tu búsqueda.</p>
+        <button type="button" class="btn-coral" (click)="clearFilters()">Mostrar todos los productos</button>
+      </div>
+    } @else {
+      <div class="products-grid">
+        @for (vm of sortedItems(); track vm.producto.id) {
+          <article class="product-card" [class.is-out-of-stock]="vm.disponible === 0">
+            <a [routerLink]="['/producto', vm.producto.id]" class="product-media">
+              <img [src]="vm.producto.imagen_url" [alt]="vm.producto.nombre" loading="lazy" />
+              <span class="media-cat">{{ vm.producto.categoria }}</span>
+              <span class="media-rating">
+                <span class="star-icon">★</span>
+                {{ vm.promedio !== null ? vm.promedio.toFixed(1) : 'Nuevo' }}
+              </span>
+            </a>
+
+            <div class="product-body">
+              <a [routerLink]="['/producto', vm.producto.id]" class="product-title">
+                {{ vm.producto.nombre }}
+              </a>
+              <p class="product-desc">{{ vm.producto.descripcion }}</p>
+            </div>
+
+            <div class="product-footer">
+              <div class="price-stock">
+                <strong class="product-price">{{ vm.producto.precio | mxn }}</strong>
+                <span
+                  class="stock-text"
+                  [class.stock-out]="vm.disponible === 0"
+                  [class.stock-low]="vm.disponible !== null && vm.disponible > 0 && vm.disponible <= 3"
+                >
+                  @if (vm.disponible === 0) {
+                    Agotado
+                  } @else if (vm.disponible !== null) {
+                    En stock ({{ vm.disponible }})
+                  } @else {
+                    Disponible
+                  }
+                </span>
+              </div>
+
+              <button
+                type="button"
+                class="quick-add-btn"
+                [disabled]="addingId() === vm.producto.id || vm.disponible === 0"
+                (click)="agregarRapido(vm)"
+                [title]="vm.disponible === 0 ? 'Producto agotado' : 'Agregar al carrito'"
+                aria-label="Agregar al carrito"
+              >
+                @if (addingId() === vm.producto.id) {
+                  <span class="add-spinner">·</span>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                }
+              </button>
+            </div>
+          </article>
+        }
+      </div>
     }
   </section>
-}
+</div>

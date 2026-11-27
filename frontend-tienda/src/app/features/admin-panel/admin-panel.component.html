@@ -1,0 +1,360 @@
+<section class="admin-header">
+  <div>
+    <h1>Panel del Vendedor</h1>
+    <p class="subtitle">Administra el catálogo de productos, existencias en almacén, despacho de pedidos y estados de envío.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button
+      type="button"
+      class="bento-pill"
+      [class.active]="activeTab() === 'productos'"
+      (click)="cambiarTab('productos')"
+    >
+      + Nuevo Producto
+    </button>
+    <button
+      type="button"
+      class="bento-pill"
+      [class.active]="activeTab() === 'inventario'"
+      (click)="cambiarTab('inventario')"
+    >
+      Inventario
+    </button>
+    <button
+      type="button"
+      class="bento-pill"
+      [class.active]="activeTab() === 'pedidos'"
+      (click)="cambiarTab('pedidos')"
+    >
+      Pedidos y Envíos
+    </button>
+  </div>
+</section>
+
+<!-- TAB 1: INSERTAR PRODUCTOS -->
+@if (activeTab() === 'productos') {
+  <section class="admin-two-col">
+    <article class="bento-card-soft form-card">
+      <h2>Publicar nuevo producto</h2>
+      <p class="card-sub">Registra un artículo en <code>api-productos</code> y carga su stock inicial en <code>api-inventario</code>.</p>
+
+      <form class="product-form" (ngSubmit)="crearProducto()">
+        <div class="form-grid">
+          <div class="span-2">
+            <label class="bento-label" for="prodNombre">Nombre del producto</label>
+            <input
+              id="prodNombre"
+              class="bento-input"
+              type="text"
+              name="nuevoNombre"
+              [(ngModel)]="nuevoNombre"
+              placeholder="Ej. Cafetera Francesa 600 ml"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="prodCat">Categoría</label>
+            <select id="prodCat" class="bento-input" name="nuevaCategoria" [(ngModel)]="nuevaCategoria">
+              <option value="Hogar">Hogar</option>
+              <option value="Tecnologia">Tecnologia</option>
+              <option value="Accesorios">Accesorios</option>
+              <option value="Oficina">Oficina</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="bento-label" for="prodPrecio">Precio (MXN)</label>
+            <input
+              id="prodPrecio"
+              class="bento-input"
+              type="number"
+              step="0.01"
+              min="0"
+              name="nuevoPrecio"
+              [(ngModel)]="nuevoPrecio"
+              placeholder="299.90"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="prodStock">Stock inicial</label>
+            <input
+              id="prodStock"
+              class="bento-input"
+              type="number"
+              min="0"
+              step="1"
+              name="stockInicial"
+              [(ngModel)]="stockInicial"
+            />
+          </div>
+
+          <div>
+            <label class="bento-label" for="prodImg">URL de imagen (HTTP/HTTPS)</label>
+            <input
+              id="prodImg"
+              class="bento-input"
+              type="url"
+              name="nuevaImagenUrl"
+              [(ngModel)]="nuevaImagenUrl"
+              placeholder="https://images.unsplash.com/..."
+              required
+            />
+          </div>
+
+          <div class="span-2">
+            <label class="bento-label" for="prodDesc">Descripción</label>
+            <textarea
+              id="prodDesc"
+              class="bento-input"
+              rows="3"
+              name="nuevaDescripcion"
+              [(ngModel)]="nuevaDescripcion"
+              placeholder="Describe materiales, medidas o características clave..."
+              required
+            ></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-coral" [disabled]="creatingProduct()">
+          {{ creatingProduct() ? 'Publicando...' : 'Publicar producto' }}
+        </button>
+      </form>
+    </article>
+
+    <aside class="bento-card bg-pastel-lilac preview-card">
+      <span class="badge-pill badge-dark">Vista previa en catálogo</span>
+      <div class="preview-box">
+        <div class="preview-img">
+          @if (nuevaImagenUrl) {
+            <img [src]="nuevaImagenUrl" alt="Vista previa" />
+          } @else {
+            <span>Ingresa una URL para previsualizar</span>
+          }
+        </div>
+        <h3>{{ nuevoNombre || 'Nombre del producto' }}</h3>
+        <p>{{ nuevaDescripcion || 'Aquí aparecerá la descripción corta en la tienda.' }}</p>
+        <div class="preview-footer">
+          <strong>{{ (nuevoPrecio ?? 0) | mxn }}</strong>
+          <span class="badge-pill badge-neutral">{{ nuevaCategoria }} · {{ stockInicial }} uds.</span>
+        </div>
+      </div>
+    </aside>
+  </section>
+}
+
+<!-- TAB 2: REABASTECER INVENTARIO -->
+@if (activeTab() === 'inventario') {
+  <section class="bento-card-soft inventory-card">
+    <div class="inv-head">
+      <div>
+        <h2>Control y reabastecimiento de inventario</h2>
+        <p class="card-sub">Suma existencias disponibles a través de <code>POST /api/inventario/reabastecer</code>.</p>
+      </div>
+      <button type="button" class="bento-pill" (click)="cargarInventario()" [disabled]="loadingInventario()">
+        {{ loadingInventario() ? 'Cargando...' : 'Actualizar' }}
+      </button>
+    </div>
+
+    <div class="inv-table">
+      <div class="inv-row inv-row-head">
+        <span>Producto</span>
+        <span>Precio</span>
+        <span>Stock actual</span>
+        <span>Agregar unidades</span>
+        <span class="text-right">Acción</span>
+      </div>
+
+      @for (row of inventarioRows(); track row.producto.id) {
+        <div class="inv-row">
+          <div class="inv-prod">
+            <img [src]="row.producto.imagen_url" [alt]="row.producto.nombre" />
+            <div>
+              <strong>#{{ row.producto.id }} · {{ row.producto.nombre }}</strong>
+              <span>{{ row.producto.categoria }}</span>
+            </div>
+          </div>
+
+          <strong>{{ row.producto.precio | mxn }}</strong>
+
+          <div>
+            <span
+              class="badge-pill"
+              [class.badge-success]="(row.disponible ?? 0) > 3"
+              [class.badge-warning]="(row.disponible ?? 0) > 0 && (row.disponible ?? 0) <= 3"
+              [class.badge-danger]="(row.disponible ?? 0) === 0"
+            >
+              {{ row.disponible !== null ? row.disponible + ' uds.' : 'Sin registro' }}
+            </span>
+          </div>
+
+          <div>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              class="bento-input qty-input"
+              [(ngModel)]="row.cantidadAgregar"
+              [name]="'qty_' + row.producto.id"
+            />
+          </div>
+
+          <div class="text-right">
+            <button
+              type="button"
+              class="btn-coral btn-xs"
+              [disabled]="row.loading"
+              (click)="reabastecerProducto(row)"
+            >
+              {{ row.loading ? '...' : '+ Reabastecer' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<!-- TAB 3: GESTIÓN ÁGIL DE PEDIDOS Y ENVÍOS -->
+@if (activeTab() === 'pedidos') {
+  <section class="bento-card-soft orders-admin-toolbar">
+    <div class="filter-pills-row">
+      <button type="button" class="bento-pill" [class.active]="filtroEstado() === 'todos'" (click)="filtroEstado.set('todos')">
+        Todos ({{ conteosEstado().todos }})
+      </button>
+      <button type="button" class="bento-pill" [class.active]="filtroEstado() === 'pagado'" (click)="filtroEstado.set('pagado')">
+        Por enviar ({{ conteosEstado().pagado }})
+      </button>
+      <button type="button" class="bento-pill" [class.active]="filtroEstado() === 'enviado'" (click)="filtroEstado.set('enviado')">
+        Enviados ({{ conteosEstado().enviado }})
+      </button>
+      <button type="button" class="bento-pill" [class.active]="filtroEstado() === 'pendiente'" (click)="filtroEstado.set('pendiente')">
+        Pendientes ({{ conteosEstado().pendiente }})
+      </button>
+      <button type="button" class="bento-pill" [class.active]="filtroEstado() === 'cancelado'" (click)="filtroEstado.set('cancelado')">
+        Cancelados ({{ conteosEstado().cancelado }})
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <input
+        type="text"
+        class="bento-input order-search"
+        [(ngModel)]="busquedaPedido"
+        placeholder="Filtrar por # pedido, guía o ciudad..."
+      />
+      <button type="button" class="bento-pill" (click)="cargarPedidosYEnvios()" [disabled]="loadingPedidos()">
+        {{ loadingPedidos() ? 'Cargando...' : 'Actualizar' }}
+      </button>
+    </div>
+  </section>
+
+  @if (loadingPedidos() && pedidosAdmin().length === 0) {
+    <div class="bento-card-soft empty-box">Cargando pedidos y guías de envío...</div>
+  } @else if (pedidosAdmin().length === 0) {
+    <div class="bento-card-soft empty-box">No hay pedidos que coincidan con el filtro seleccionado.</div>
+  } @else {
+    <section class="admin-orders-stack">
+      @for (vm of pedidosAdmin(); track vm.pedido.id) {
+        <article class="bento-card-soft admin-order-card">
+          <div class="ao-top">
+            <div class="ao-ident">
+              <div class="ao-badges">
+                <h3>Pedido #{{ vm.pedido.id }}</h3>
+                <span class="badge-pill badge-neutral">Cliente #{{ vm.pedido.usuario_id }}</span>
+                <span
+                  class="badge-pill"
+                  [class.badge-success]="vm.pedido.estado === 'pagado' || vm.pedido.estado === 'enviado'"
+                  [class.badge-warning]="vm.pedido.estado === 'pendiente'"
+                  [class.badge-danger]="vm.pedido.estado === 'cancelado'"
+                >
+                  {{ vm.pedido.estado }}
+                </span>
+                <span
+                  class="badge-pill"
+                  [class.badge-success]="vm.pedido.estado_pago === 'aprobado'"
+                  [class.badge-warning]="vm.pedido.estado_pago === 'en_proceso' || vm.pedido.estado_pago === 'sin_pago'"
+                  [class.badge-danger]="vm.pedido.estado_pago === 'rechazado'"
+                >
+                  Pago: {{ vm.pedido.estado_pago }}
+                </span>
+              </div>
+              <p class="ao-items">{{ vm.resumenProductos }}</p>
+              <p class="ao-address">
+                {{ vm.pedido.direccion.calle }} #{{ vm.pedido.direccion.numero }}, {{ vm.pedido.direccion.ciudad }},
+                CP {{ vm.pedido.direccion.codigo_postal }}
+              </p>
+            </div>
+
+            <div class="ao-total">
+              <small>Total</small>
+              <strong>{{ vm.pedido.total | mxn }}</strong>
+            </div>
+          </div>
+
+          <div class="ao-controls">
+            <div class="ao-guide-wrap">
+              @if (vm.pedido.guia) {
+                <span class="guide-label">Guía:</span>
+                <code class="ao-guide-code">{{ vm.pedido.guia }}</code>
+                <button type="button" class="copy-guia-btn" (click)="copiarGuia(vm.pedido.guia)">
+                  {{ copiedGuia() === vm.pedido.guia ? '¡Copiada!' : 'Copiar' }}
+                </button>
+              } @else {
+                <span class="ao-no-guide">Sin guía generada (requiere pago aprobado)</span>
+              }
+            </div>
+
+            <div class="ao-buttons">
+              @if (vm.pedido.estado === 'pagado' && vm.pedido.guia) {
+                <button
+                  type="button"
+                  class="btn-coral btn-xs"
+                  [disabled]="updatingOrderId() === vm.pedido.id"
+                  (click)="despacharPedido(vm.pedido)"
+                >
+                  {{ updatingOrderId() === vm.pedido.id ? 'Despachando...' : 'Marcar como enviado' }}
+                </button>
+              }
+
+              @if (vm.pedido.guia && vm.envioEstado) {
+                <div class="shipping-stage-group" role="group" aria-label="Estado del envío">
+                  <button
+                    type="button"
+                    class="stage-btn"
+                    [class.active]="vm.envioEstado === 'preparando'"
+                    [disabled]="updatingGuia() === vm.pedido.guia"
+                    (click)="cambiarEstadoEnvio(vm.pedido.guia, 'preparando')"
+                  >
+                    Preparando
+                  </button>
+                  <button
+                    type="button"
+                    class="stage-btn"
+                    [class.active]="vm.envioEstado === 'en_transito'"
+                    [disabled]="updatingGuia() === vm.pedido.guia"
+                    (click)="cambiarEstadoEnvio(vm.pedido.guia, 'en_transito')"
+                  >
+                    En tránsito
+                  </button>
+                  <button
+                    type="button"
+                    class="stage-btn"
+                    [class.active]="vm.envioEstado === 'entregado'"
+                    [disabled]="updatingGuia() === vm.pedido.guia"
+                    (click)="cambiarEstadoEnvio(vm.pedido.guia, 'entregado')"
+                  >
+                    Entregado
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+  }
+}
