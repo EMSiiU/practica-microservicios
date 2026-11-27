@@ -119,13 +119,32 @@
         </div>
 
         <div class="bento-card bg-pastel-lilac review-form-card">
-          <h3>Escribe tu reseña</h3>
+          <div class="review-card-head">
+            <h3>Escribe tu reseña</h3>
+            @if (auth.isAuthenticated() && haCompradoProducto()) {
+              <span class="badge-pill badge-success">Compra verificada ✓</span>
+            }
+          </div>
 
           @if (!auth.isAuthenticated()) {
             <p class="auth-hint">Inicia sesión con tu cuenta de cliente para calificar este producto.</p>
             <button type="button" class="btn-coral" (click)="auth.openModal('login')">
               Iniciar sesión para opinar
             </button>
+          } @else if (auth.user()?.rol !== 'cliente') {
+            <p class="auth-hint">Solo las cuentas de cliente con compra verificada pueden publicar reseñas.</p>
+          } @else if (checkingPurchase()) {
+            <p class="auth-hint">Verificando historial de compras...</p>
+          } @else if (!haCompradoProducto()) {
+            <div class="purchase-required-box">
+              <strong>Compra verificada requerida</strong>
+              <p>Solo los usuarios que han comprado y pagado este producto pueden agregar una reseña.</p>
+            </div>
+          } @else if (yaReseno()) {
+            <div class="purchase-required-box">
+              <strong>Ya publicaste tu reseña</strong>
+              <p>Solo se permite una reseña por cliente para cada producto.</p>
+            </div>
           } @else {
             @if (reviewError()) {
               <div class="review-alert">{{ reviewError() }}</div>

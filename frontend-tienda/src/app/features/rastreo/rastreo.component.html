@@ -1,0 +1,59 @@
+<section class="rastreo-header">
+  <div>
+    <h1>Rastreo de Envíos</h1>
+    <p class="subtitle">Consulta el estado en tiempo real de cualquier paquete usando su número de guía.</p>
+  </div>
+</section>
+
+<section class="bento-card bg-pastel-sky search-banner">
+  <form class="rastreo-form" (ngSubmit)="buscarGuia()">
+    <input
+      type="text"
+      class="bento-input guia-input"
+      name="guiaInput"
+      [(ngModel)]="guiaInput"
+      placeholder="Ingresa tu guía (ej. GT-C50C1745...)"
+      aria-label="Número de guía"
+    />
+    <button type="submit" class="btn-coral search-submit" [disabled]="loading()">
+      {{ loading() ? 'Buscando...' : 'Rastrear paquete' }}
+    </button>
+  </form>
+
+  @if (misGuias().length > 0) {
+    <div class="quick-guides">
+      <span class="quick-label">Tus guías recientes:</span>
+      <div class="quick-chips">
+        @for (item of misGuias(); track item.guia) {
+          <button
+            type="button"
+            class="bento-pill quick-chip"
+            [class.active]="resultado()?.guia === item.guia"
+            (click)="buscarGuia(item.guia)"
+          >
+            Pedido #{{ item.pedidoId }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+</section>
+
+@if (errorMsg()) {
+  <div class="bento-card-soft error-card">
+    <strong>No pudimos localizar la guía</strong>
+    <p>{{ errorMsg() }}</p>
+  </div>
+}
+
+@if (resultado(); as env) {
+  <section class="bento-card-soft result-panel">
+    <app-tracking-road [guia]="env.guia" [estado]="env.estado" />
+  </section>
+} @else if (!errorMsg()) {
+  <section class="bento-card-soft empty-track">
+    <div class="empty-icon">🚚</div>
+    <h2>Sigue tu paquete paso a paso</h2>
+    <p>Escribe el código de guía que aparece en tu historial de pedidos para visualizar el avance del envío.</p>
+  </section>
+}

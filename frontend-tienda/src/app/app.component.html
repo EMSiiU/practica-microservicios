@@ -23,18 +23,6 @@
         </a>
 
         <a
-          routerLink="/producto/12"
-          routerLinkActive="active"
-          class="nav-btn"
-          title="Detalle de Producto"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-        </a>
-
-        <a
           routerLink="/carrito"
           routerLinkActive="active"
           class="nav-btn nav-btn-cart"
@@ -63,6 +51,46 @@
             <line x1="8" y1="17" x2="13" y2="17" />
           </svg>
         </a>
+
+        <a
+          routerLink="/rastreo"
+          routerLinkActive="active"
+          class="nav-btn"
+          title="Rastreo de Envíos"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="2" />
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+        </a>
+
+        @if (auth.user()?.rol === 'admin') {
+          <a
+            routerLink="/vendedor"
+            routerLinkActive="active"
+            class="nav-btn"
+            title="Panel del Vendedor"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l1.5-5h15L21 9" />
+              <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+              <path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8" />
+            </svg>
+          </a>
+
+          <a
+            routerLink="/sistema"
+            routerLinkActive="active"
+            class="nav-btn"
+            title="Salud del Sistema"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          </a>
+        }
       </nav>
 
       <div class="sidebar-footer">

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
@@ -7,6 +7,7 @@ import { Producto, Resena } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { CarritoService } from '../../core/services/carrito.service';
 import { InventarioService } from '../../core/services/inventario.service';
+import { PedidosService } from '../../core/services/pedidos.service';
 import { ProductosService } from '../../core/services/productos.service';
 import { ResenasService } from '../../core/services/resenas.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -24,6 +25,7 @@ export class ProductoDetalleComponent implements OnInit {
   private readonly productosService = inject(ProductosService);
   private readonly inventarioService = inject(InventarioService);
   private readonly resenasService = inject(ResenasService);
+  private readonly pedidosService = inject(PedidosService);
   private readonly carritoService = inject(CarritoService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -41,6 +43,26 @@ export class ProductoDetalleComponent implements OnInit {
   comentarioForm = '';
   readonly submittingReview = signal(false);
   readonly reviewError = signal<string | null>(null);
+  readonly checkingPurchase = signal(false);
+  readonly haCompradoProducto = signal(false);
+
+  readonly yaReseno = computed(() => {
+    const uid = this.auth.user()?.id;
+    if (!uid) return false;
+    return this.resenas().some((r) => r.usuario_id === uid);
+  });
+
+  constructor() {
+    effect(() => {
+      const user = this.auth.user();
+      const prod = this.producto();
+      if (user && prod && user.rol === 'cliente') {
+        this.verificarCompraUsuario(user.id, prod.id);
+      } else {
+        this.haCompradoProducto.set(false);
+      }
+    });
+  }
 
   readonly stockPercent = computed(() => {
     const stock = this.disponible();
@@ -78,9 +100,33 @@ export class ProductoDetalleComponent implements OnInit {
         this.promedio.set(resenas.promedio);
         this.resenas.set(resenas.resenas);
         this.loading.set(false);
+
+        const user = this.auth.user();
+        if (producto && user && user.rol === 'cliente') {
+          this.verificarCompraUsuario(user.id, producto.id);
+        }
       },
       error: () => {
         this.loading.set(false);
+      },
+    });
+  }
+
+  private verificarCompraUsuario(usuarioId: number, productoId: number): void {
+    this.checkingPurchase.set(true);
+    this.pedidosService.getPedidosUsuario(usuarioId).subscribe({
+      next: (pedidos) => {
+        const compro = pedidos.some(
+          (p) =>
+            (p.estado_pago === 'aprobado' || p.estado === 'pagado' || p.estado === 'enviado') &&
+            p.items.some((it) => it.producto_id === productoId)
+        );
+        this.haCompradoProducto.set(compro);
+        this.checkingPurchase.set(false);
+      },
+      error: () => {
+        this.haCompradoProducto.set(false);
+        this.checkingPurchase.set(false);
       },
     });
   }

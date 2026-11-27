@@ -1,0 +1,97 @@
+<div class="road-wrapper">
+  <div class="guide-banner">
+    <div class="guide-meta">
+      <span class="guide-kicker">Número de guía</span>
+      <code class="guide-code">{{ guia() }}</code>
+    </div>
+
+    <div class="guide-actions">
+      <button type="button" class="copy-btn" (click)="copiarGuia()">
+        {{ copied() ? '¡Copiada!' : 'Copiar guía' }}
+      </button>
+      <span
+        class="badge-pill"
+        [class.badge-warning]="estado() === 'preparando'"
+        [class.badge-yellow]="estado() === 'en_transito'"
+        [class.badge-success]="estado() === 'entregado'"
+      >
+        {{ estado() === 'en_transito' ? 'En tránsito' : estado() === 'entregado' ? 'Entregado' : 'Preparando' }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Ruta ilustrada con camión estilo marketplace -->
+  <div class="road-stage">
+    <div class="truck-lane">
+      <div
+        class="truck-anchor"
+        [style.left.%]="truckLeftPercent()"
+        [class.is-driving]="estado() === 'en_transito'"
+      >
+        <div class="truck-bubble">
+          <svg viewBox="0 0 64 40" class="truck-svg" aria-hidden="true">
+            <!-- Caja de carga -->
+            <rect x="4" y="6" width="36" height="22" rx="4" fill="#EE6344" stroke="#232323" stroke-width="2.4" />
+            <line x1="11" y1="13" x2="31" y2="13" stroke="#FAF9F6" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="11" y1="19" x2="24" y2="19" stroke="#FAD45B" stroke-width="2.2" stroke-linecap="round" />
+            <!-- Cabina -->
+            <path d="M40 12 H52 L59 20 V28 H40 Z" fill="#FAD45B" stroke="#232323" stroke-width="2.4" stroke-linejoin="round" />
+            <path d="M43 15 H51 L55 20 H43 Z" fill="#CBE5FE" stroke="#232323" stroke-width="1.6" stroke-linejoin="round" />
+            <!-- Ruedas -->
+            <circle cx="16" cy="31" r="5.5" fill="#232323" />
+            <circle cx="16" cy="31" r="2.2" fill="#FAF9F6" />
+            <circle cx="49" cy="31" r="5.5" fill="#232323" />
+            <circle cx="49" cy="31" r="2.2" fill="#FAF9F6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carretera -->
+    <div class="asphalt-track">
+      <div class="asphalt-progress" [style.width.%]="progressPercent()"></div>
+      <div class="road-dashes"></div>
+    </div>
+
+    <!-- 3 paradas -->
+    <div class="milestones-grid">
+      <div class="milestone" [class.reached]="stepIndex() >= 1" [class.current]="stepIndex() === 1">
+        <div class="milestone-dot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          </svg>
+        </div>
+        <strong>Preparando</strong>
+        <span>En almacén</span>
+      </div>
+
+      <div class="milestone" [class.reached]="stepIndex() >= 2" [class.current]="stepIndex() === 2">
+        <div class="milestone-dot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="1" y="3" width="15" height="13" rx="2" />
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+        </div>
+        <strong>En tránsito</strong>
+        <span>Camino al destino</span>
+      </div>
+
+      <div class="milestone" [class.reached]="stepIndex() >= 3" [class.current]="stepIndex() === 3">
+        <div class="milestone-dot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <strong>Entregado</strong>
+        <span>Recibido</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-callout">
+    <strong>{{ estadoTitulo() }}</strong>
+    <p>{{ estadoDescripcion() }}</p>
+  </div>
+</div>

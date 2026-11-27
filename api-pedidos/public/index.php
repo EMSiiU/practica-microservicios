@@ -23,6 +23,10 @@ try {
         http_response_code(204);
     } elseif ($metodo === 'GET' && $ruta === '/health') {
         responder(200, ['status' => 'ok']);
+    } elseif ($metodo === 'GET' && $ruta === '/api/pedidos') {
+        exigirPermiso(usuario()['rol'] === 'admin');
+        $historial = consultar(conectar(), 'SELECT * FROM pedidos ORDER BY id DESC', []);
+        responder(200, array_map('presentar', $historial->fetchAll(PDO::FETCH_ASSOC)));
     } elseif ($metodo === 'POST' && $ruta === '/api/pedidos') {
         $usuario = usuario();
         exigirPermiso($usuario['rol'] === 'cliente');

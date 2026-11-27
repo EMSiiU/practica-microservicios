@@ -127,6 +127,19 @@ function enviarPedido(PDO $db, int $id): array
         [$id]
     )->fetch(PDO::FETCH_ASSOC);
     if ($pedido !== false) {
+        if (is_string($pedido['guia'] ?? null) && $pedido['guia'] !== '') {
+            try {
+                llamarServicio(
+                    'ENVIOS',
+                    'PATCH',
+                    '/api/envios/' . rawurlencode($pedido['guia']) . '/estado',
+                    ['estado' => 'en_transito'],
+                    interno: true
+                );
+            } catch (Throwable $error) {
+                error_log('No se pudo sincronizar la guía en Envíos: ' . $error->getMessage());
+            }
+        }
         return $pedido;
     }
     obtenerPedido($db, $id);

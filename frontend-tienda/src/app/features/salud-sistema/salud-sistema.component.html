@@ -1,0 +1,56 @@
+<section class="health-header">
+  <div>
+    <h1>Salud del Sistema</h1>
+    <p class="subtitle">Monitoreo de disponibilidad y latencia en tiempo real de los 8 microservicios.</p>
+  </div>
+
+  <button type="button" class="btn-coral" (click)="comprobarSalud()">
+    Comprobar salud ahora
+  </button>
+</section>
+
+<section class="summary-cards">
+  <article class="bento-card bg-pastel-yellow summary-tile">
+    <span class="tile-label">Servicios activos</span>
+    <strong class="tile-value">{{ onlineCount() }} / {{ servicios().length }}</strong>
+  </article>
+
+  <article class="bento-card bg-pastel-sky summary-tile">
+    <span class="tile-label">Latencia promedio</span>
+    <strong class="tile-value">{{ avgLatency() !== null ? avgLatency() + ' ms' : '—' }}</strong>
+  </article>
+
+  <article class="bento-card-dark summary-tile">
+    <span class="tile-label">Estado general</span>
+    <strong class="tile-value">
+      {{ onlineCount() === servicios().length ? 'Operativo' : 'Revisar nodos' }}
+    </strong>
+  </article>
+</section>
+
+<section class="bento-card-soft health-board">
+  <div class="health-grid">
+    @for (srv of servicios(); track srv.nombre) {
+      <div class="health-tile" [class.tile-ok]="srv.estado === 'ok'" [class.tile-err]="srv.estado === 'error'">
+        <div class="health-top">
+          <strong>{{ srv.nombre }}</strong>
+          <span
+            class="badge-pill"
+            [class.badge-success]="srv.estado === 'ok'"
+            [class.badge-danger]="srv.estado === 'error'"
+            [class.badge-neutral]="srv.estado === 'checking'"
+          >
+            {{ srv.estado === 'ok' ? 'Online' : srv.estado === 'error' ? 'Sin respuesta' : 'Verificando...' }}
+          </span>
+        </div>
+
+        <div class="health-meta">
+          <code>{{ srv.url }}/health</code>
+          @if (srv.latenciaMs !== null) {
+            <strong>{{ srv.latenciaMs }} ms</strong>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

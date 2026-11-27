@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -18,10 +19,13 @@ export interface ProductoCardVM {
   totalResenas: number;
 }
 
+export type PriceRangeKey = 'all' | 'under500' | '500to1200' | 'over1200';
+export type SortOption = 'featured' | 'price_asc' | 'price_desc' | 'rating_desc';
+
 @Component({
   selector: 'app-catalogo',
   standalone: true,
-  imports: [RouterLink, MxnPipe],
+  imports: [RouterLink, FormsModule, MxnPipe],
   templateUrl: './catalogo.component.html',
   styleUrl: './catalogo.component.css',
 })
@@ -36,39 +40,86 @@ export class CatalogoComponent implements OnInit {
   readonly loading = signal(true);
   readonly items = signal<ProductoCardVM[]>([]);
   readonly selectedCategory = signal<string>('Todos');
+  readonly priceRange = signal<PriceRangeKey>('all');
+  readonly onlyInStock = signal<boolean>(false);
+  readonly sortBy = signal<SortOption>('featured');
   readonly addingId = signal<number | null>(null);
 
-  readonly categories = computed(() => {
-    const unique = new Set(this.items().map((item) => item.producto.categoria));
-    return ['Todos', ...Array.from(unique)];
+  readonly categoryOptions = computed(() => {
+    const counts = new Map<string, number>();
+    for (const item of this.items()) {
+      const cat = item.producto.categoria;
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    }
+    return [
+      { name: 'Todos', count: this.items().length },
+      ...Array.from(counts.entries()).map(([name, count]) => ({ name, count })),
+    ];
   });
 
-  readonly filteredItems = computed(() => {
+  readonly priceRanges = computed(() => {
+    const all = this.items();
+    const total = Math.max(1, all.length);
+    const under500 = all.filter((i) => i.producto.precio < 500).length;
+    const mid = all.filter((i) => i.producto.precio >= 500 && i.producto.precio <= 1200).length;
+    const over1200 = all.filter((i) => i.producto.precio > 1200).length;
+
+    return [
+      { key: 'under500' as const, label: 'Menos de $500', count: under500, pct: Math.round((under500 / total) * 100) },
+      { key: '500to1200' as const, label: '$500 a $1,200', count: mid, pct: Math.round((mid / total) * 100) },
+      { key: 'over1200' as const, label: 'Más de $1,200', count: over1200, pct: Math.round((over1200 / total) * 100) },
+    ];
+  });
+
+  readonly inStockCount = computed(() =>
+    this.items().filter((i) => i.disponible === null || i.disponible > 0).length
+  );
+
+  readonly hasActiveFilters = computed(
+    () =>
+      this.selectedCategory() !== 'Todos' ||
+      this.priceRange() !== 'all' ||
+      this.onlyInStock() ||
+      this.searchService.query().trim().length > 0
+  );
+
+  readonly sortedItems = computed(() => {
     const category = this.selectedCategory();
+    const range = this.priceRange();
+    const stockOnly = this.onlyInStock();
     const query = this.searchService.query().trim().toLowerCase();
 
-    return this.items().filter(({ producto }) => {
-      const matchesCat = category === 'Todos' || producto.categoria === category;
-      const matchesQuery =
-        !query ||
-        producto.nombre.toLowerCase().includes(query) ||
-        producto.categoria.toLowerCase().includes(query) ||
-        producto.descripcion.toLowerCase().includes(query);
-      return matchesCat && matchesQuery;
+    const filtered = this.items().filter(({ producto, disponible }) => {
+      if (category !== 'Todos' && producto.categoria !== category) return false;
+
+      if (range === 'under500' && producto.precio >= 500) return false;
+      if (range === '500to1200' && (producto.precio < 500 || producto.precio > 1200)) return false;
+      if (range === 'over1200' && producto.precio <= 1200) return false;
+
+      if (stockOnly && disponible !== null && disponible <= 0) return false;
+
+      if (
+        query &&
+        !producto.nombre.toLowerCase().includes(query) &&
+        !producto.categoria.toLowerCase().includes(query) &&
+        !producto.descripcion.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      return true;
     });
-  });
 
-  readonly featuredCards = computed(() => this.filteredItems().slice(0, 3));
-
-  readonly listItems = computed(() => {
-    const all = this.filteredItems();
-    return all.length > 3 ? all.slice(3) : all;
-  });
-
-  readonly spotlightProduct = computed(() => {
-    const all = this.filteredItems();
-    if (all.length === 0) return null;
-    return all.find((item) => item.producto.id === 12) ?? all[0];
+    const sort = this.sortBy();
+    if (sort === 'price_asc') {
+      return [...filtered].sort((a, b) => a.producto.precio - b.producto.precio);
+    }
+    if (sort === 'price_desc') {
+      return [...filtered].sort((a, b) => b.producto.precio - a.producto.precio);
+    }
+    if (sort === 'rating_desc') {
+      return [...filtered].sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1));
+    }
+    return filtered;
   });
 
   ngOnInit(): void {
@@ -123,14 +174,19 @@ export class CatalogoComponent implements OnInit {
     this.selectedCategory.set(cat);
   }
 
-  pastelClass(index: number): string {
-    const classes = ['bg-pastel-yellow', 'bg-pastel-lilac', 'bg-pastel-sky'];
-    return classes[index % classes.length];
+  togglePriceRange(key: PriceRangeKey): void {
+    this.priceRange.set(this.priceRange() === key ? 'all' : key);
   }
 
-  stockPercent(disponible: number | null): number {
-    if (disponible === null || disponible <= 0) return 0;
-    return Math.min(100, Math.round((disponible / 15) * 100));
+  toggleInStock(): void {
+    this.onlyInStock.update((v) => !v);
+  }
+
+  clearFilters(): void {
+    this.selectedCategory.set('Todos');
+    this.priceRange.set('all');
+    this.onlyInStock.set(false);
+    this.searchService.clear();
   }
 
   agregarRapido(vm: ProductoCardVM): void {
